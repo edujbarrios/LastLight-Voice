@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Sequence
 
 from ..audio import AudioBuffer
-from ..errors import BackendUnavailableError, SynthesisError
+from ..errors import BackendUnavailableError, ConfigurationError, SynthesisError
 from ..models import BackendCapabilities, Voice
 
 
@@ -21,8 +21,15 @@ class EspeakBackend:
     name = "espeak-ng"
 
     def __init__(self, *, timeout: float = 30.0, executable: str | None = None) -> None:
+        if timeout <= 0:
+            raise ConfigurationError("eSpeak NG timeout must be greater than zero.")
         self._timeout = timeout
         self._executable = executable or shutil.which("espeak-ng")
+
+    @property
+    def executable(self) -> str | None:
+        """Return the resolved executable path/name, if available."""
+        return self._executable
 
     def available(self) -> bool:
         return self._executable is not None
@@ -50,7 +57,7 @@ class EspeakBackend:
             with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as handle:
                 path = Path(handle.name)
             self._run([executable, "-v", language, "-w", str(path), text])
-            return AudioBuffer(data=path.read_bytes())
+            return AudioBuffer.from_wav_bytes(path.read_bytes())
         except OSError as exc:
             raise SynthesisError(f"Unable to read synthesized audio: {exc}") from exc
         finally:
