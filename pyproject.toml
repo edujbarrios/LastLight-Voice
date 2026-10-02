@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lastlight-voice"
+version = "0.1.0"
+description = "Offline speech for LastLight, built for constrained environments."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MPL-2.0" }
+authors = [
+  { name = "Eduardo J. Barrios" }
+]
+keywords = ["offline", "speech", "tts", "edge-ai", "low-power", "lastlight"]
+dependencies = []
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Typing :: Typed",
+]
+
+[project.optional-dependencies]
+dev = [
+  "build>=1.2",
+  "pytest>=8",
+]
+
+[project.scripts]
+lastlight-voice = "lastlight_voice.cli:main"
+
+[project.urls]
+Repository = "https://github.com/edujbarrios/LastLight-Voice"
+Issues = "https://github.com/edujbarrios/LastLight-Voice/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["lastlight_voice*"]
+
+[tool.setuptools.package-data]
+lastlight_voice = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
