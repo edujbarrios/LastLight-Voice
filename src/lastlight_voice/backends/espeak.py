@@ -48,7 +48,7 @@ class EspeakBackend:
 
     def speak(self, text: str, *, language: str) -> None:
         executable = self._require_executable()
-        self._run([executable, "-v", language, text])
+        self._run([executable, "-v", language, "--stdin"], text=text)
 
     def synthesize(self, text: str, *, language: str) -> AudioBuffer:
         executable = self._require_executable()
@@ -56,7 +56,10 @@ class EspeakBackend:
         try:
             with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as handle:
                 path = Path(handle.name)
-            self._run([executable, "-v", language, "-w", str(path), text])
+            self._run(
+                [executable, "-v", language, "-w", str(path), "--stdin"],
+                text=text,
+            )
             return AudioBuffer.from_wav_bytes(path.read_bytes())
         except OSError as exc:
             raise SynthesisError(f"Unable to read synthesized audio: {exc}") from exc
@@ -77,12 +80,13 @@ class EspeakBackend:
             )
         return self._executable
 
-    def _run(self, command: list[str]) -> None:
+    def _run(self, command: list[str], *, text: str) -> None:
         try:
             subprocess.run(
                 command,
                 check=True,
                 timeout=self._timeout,
+                input=text,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.PIPE,
                 text=True,
