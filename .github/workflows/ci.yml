@@ -25,6 +25,8 @@ jobs:
           lastlight-voice doctor
           lastlight-voice inspect
           lastlight-voice speak --backend dummy "offline smoke test"
+          lastlight-voice synthesize --backend dummy "offline smoke test" smoke.wav
+          test -s smoke.wav
 
   build:
     runs-on: ubuntu-latest
