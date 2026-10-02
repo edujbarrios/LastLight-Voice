@@ -18,20 +18,26 @@ class RuntimeDiagnostics:
     machine: str
     python: str
     espeak_available: bool
+    espeak_executable: str | None
+    supported_languages: tuple[str, ...] = ("en", "es")
     dummy_available: bool = True
     network_required: bool = False
+    automatic_downloads: bool = False
 
     @property
     def offline_ready(self) -> bool:
+        """Return whether a real local speech backend is ready to use."""
         return self.espeak_available
 
 
 def diagnose() -> RuntimeDiagnostics:
     """Inspect only local runtime state. This function never accesses a network."""
+    espeak = EspeakBackend()
     return RuntimeDiagnostics(
         platform=platform.system(),
         machine=platform.machine(),
         python=f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
-        espeak_available=EspeakBackend().available(),
+        espeak_available=espeak.available(),
+        espeak_executable=espeak.executable,
         dummy_available=DummyTTSBackend().available(),
     )
