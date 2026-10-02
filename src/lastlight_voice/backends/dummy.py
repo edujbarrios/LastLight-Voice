@@ -50,13 +50,7 @@ class DummyTTSBackend:
             wav.setsampwidth(2)
             wav.setframerate(8_000)
             wav.writeframes(b"\x00\x00" * 80)
-        return AudioBuffer(
-            data=buffer.getvalue(),
-            sample_rate=8_000,
-            channels=1,
-            sample_width=2,
-            duration=0.01,
-        )
+        return AudioBuffer.from_wav_bytes(buffer.getvalue())
 
     def stop(self) -> None:
         return None
