@@ -27,6 +27,12 @@ def build_parser() -> argparse.ArgumentParser:
     speak.add_argument("--language", default="en")
     speak.add_argument("--backend", default=None)
 
+    synthesize = sub.add_parser("synthesize", help="Synthesize text to a local WAV file.")
+    synthesize.add_argument("text")
+    synthesize.add_argument("output")
+    synthesize.add_argument("--language", default="en")
+    synthesize.add_argument("--backend", default=None)
+
     voices = sub.add_parser("voices", help="List supported project voices.")
     voices.add_argument("--language", default="en")
     voices.add_argument("--backend", default=None)
@@ -48,6 +54,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "speak":
             SpeechEngine(language=args.language, backend=args.backend).say(args.text)
             return 0
+        if args.command == "synthesize":
+            output = SpeechEngine(language=args.language, backend=args.backend).save(
+                args.text,
+                args.output,
+            )
+            print(output)
+            return 0
         if args.command == "voices":
             engine = SpeechEngine(language=args.language, backend=args.backend)
             for voice in engine.voices():
@@ -63,19 +76,23 @@ def _print_doctor() -> None:
     info = diagnose()
     print("LastLight-Voice Doctor")
     print()
-    print(f"Platform          {info.platform} {info.machine}")
-    print(f"Python            {info.python}")
+    print(f"Platform             {info.platform} {info.machine}")
+    print(f"Python               {info.python}")
     print()
     print("Language support")
-    print("English           yes")
-    print("Spanish           yes")
+    print("English              yes")
+    print("Spanish              yes")
     print()
     print("Backends")
-    print(f"eSpeak NG         {'available' if info.espeak_available else 'not found'}")
-    print("Dummy             available (testing only)")
+    print(f"eSpeak NG            {'available' if info.espeak_available else 'not found'}")
+    if info.espeak_executable:
+        print(f"eSpeak executable    {info.espeak_executable}")
+    print("Dummy                available (testing only)")
     print()
-    print("Network required  no")
-    print(f"Offline ready     {'yes' if info.offline_ready else 'no'}")
+    print("Runtime policy")
+    print("Network required     no")
+    print("Automatic downloads  no")
+    print(f"Offline ready        {'yes' if info.offline_ready else 'no'}")
 
 
 if __name__ == "__main__":
