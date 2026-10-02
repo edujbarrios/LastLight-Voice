@@ -8,6 +8,7 @@ import argparse
 import json
 import sys
 from collections.abc import Sequence
+from dataclasses import asdict
 
 from .detection import diagnose
 from .engine import SpeechEngine
@@ -42,7 +43,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             _print_doctor()
             return 0
         if args.command == "inspect":
-            print(json.dumps(diagnose().__dict__, indent=2, sort_keys=True))
+            print(json.dumps(asdict(diagnose()), indent=2, sort_keys=True))
             return 0
         if args.command == "speak":
             SpeechEngine(language=args.language, backend=args.backend).say(args.text)
