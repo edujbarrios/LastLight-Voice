@@ -49,7 +49,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             _print_doctor()
             return 0
         if args.command == "inspect":
-            print(json.dumps(asdict(diagnose()), indent=2, sort_keys=True))
+            info = diagnose()
+            payload = asdict(info)
+            payload["offline_ready"] = info.offline_ready
+            print(json.dumps(payload, indent=2, sort_keys=True))
             return 0
         if args.command == "speak":
             SpeechEngine(language=args.language, backend=args.backend).say(args.text)
