@@ -19,7 +19,7 @@ def test_espeak_unavailable_is_explicit(monkeypatch) -> None:
         backend.speak("hello", language="en")
 
 
-def test_espeak_uses_argument_list_not_shell(monkeypatch) -> None:
+def test_espeak_uses_argument_list_and_stdin(monkeypatch) -> None:
     calls: list[tuple[list[str], dict[str, object]]] = []
 
     def fake_run(command, **kwargs):
@@ -28,10 +28,11 @@ def test_espeak_uses_argument_list_not_shell(monkeypatch) -> None:
 
     monkeypatch.setattr("lastlight_voice.backends.espeak.subprocess.run", fake_run)
     backend = EspeakBackend(executable="/usr/bin/espeak-ng")
-    backend.speak("hello world", language="en")
+    backend.speak("--voices should be spoken", language="en")
 
     command, kwargs = calls[0]
-    assert command == ["/usr/bin/espeak-ng", "-v", "en", "hello world"]
+    assert command == ["/usr/bin/espeak-ng", "-v", "en", "--stdin"]
+    assert kwargs["input"] == "--voices should be spoken"
     assert "shell" not in kwargs
     assert kwargs["check"] is True
 
@@ -53,7 +54,10 @@ def test_espeak_rejects_non_positive_timeout() -> None:
 
 
 def test_espeak_synthesis_extracts_wav_metadata(monkeypatch) -> None:
+    calls: list[tuple[list[str], dict[str, object]]] = []
+
     def fake_run(command, **kwargs):
+        calls.append((command, kwargs))
         output_path = command[command.index("-w") + 1]
         buffer = io.BytesIO()
         with wave.open(buffer, "wb") as wav:
@@ -70,6 +74,9 @@ def test_espeak_synthesis_extracts_wav_metadata(monkeypatch) -> None:
 
     audio = backend.synthesize("hello", language="en")
 
+    command, kwargs = calls[0]
+    assert command[-1] == "--stdin"
+    assert kwargs["input"] == "hello"
     assert audio.sample_rate == 16_000
     assert audio.channels == 1
     assert audio.sample_width == 2
