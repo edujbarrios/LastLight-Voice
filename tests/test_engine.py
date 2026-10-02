@@ -27,6 +27,16 @@ def test_dummy_synthesis_produces_wav() -> None:
     assert audio.sample_rate == 8_000
 
 
+def test_save_returns_written_path(tmp_path) -> None:
+    engine = SpeechEngine(backend="dummy")
+    output = tmp_path / "answer.wav"
+
+    written = engine.save("Offline answer", output)
+
+    assert written == output
+    assert output.read_bytes().startswith(b"RIFF")
+
+
 @pytest.mark.parametrize("language", ["en", "en-US", "en_GB"])
 def test_english_locales_normalize(language: str) -> None:
     assert SpeechEngine(language=language, backend="dummy").language == "en"
