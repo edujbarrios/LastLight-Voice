@@ -19,6 +19,7 @@ def test_inspect_returns_json(capsys) -> None:
     assert payload["network_required"] is False
     assert payload["automatic_downloads"] is False
     assert payload["supported_languages"] == ["en", "es"]
+    assert payload["offline_ready"] == payload["espeak_available"]
     assert "espeak_available" in payload
     assert "espeak_executable" in payload
 
