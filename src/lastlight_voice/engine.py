@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Sequence
 
 from .audio import AudioBuffer
@@ -62,8 +63,9 @@ class SpeechEngine:
         self._validate_text(text)
         return self._backend.synthesize(text, language=self._language)
 
-    def save(self, text: str, path: str) -> None:
-        self.synthesize(text).save(path)
+    def save(self, text: str, path: str | Path) -> Path:
+        """Synthesize text to WAV and return the written output path."""
+        return self.synthesize(text).save(path)
 
     def stop(self) -> None:
         self._backend.stop()
