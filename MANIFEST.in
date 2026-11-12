@@ -1,0 +1,2 @@
+include THIRD_PARTY_VOICES.md
+recursive-include src/lastlight_voice/voices *.onnx *.onnx.json *.MODEL_CARD *.md

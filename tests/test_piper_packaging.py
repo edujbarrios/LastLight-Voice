@@ -8,7 +8,7 @@ import pytest
 from lastlight_voice import ConfigurationError, SpeechEngine
 from lastlight_voice.backends.piper import PiperBackend
 from lastlight_voice.errors import BackendUnavailableError
-from lastlight_voice.piper_voices import load_piper_catalog
+from lastlight_voice.piper_voices import find_local_model, load_piper_catalog
 
 
 def test_default_catalog_english_only():
@@ -83,3 +83,14 @@ def test_piper_wav_generation_uses_local_files(tmp_path, monkeypatch):
 def test_other_languages_not_in_dummy():
     with pytest.raises(ConfigurationError):
         SpeechEngine(language="it", backend="dummy")
+
+
+def test_amy_model_is_bundled_for_editable_and_normal_installs():
+    """Real weights and config must ship within lastlight_voice itself."""
+    spec = load_piper_catalog()[0]
+    model = find_local_model(spec)
+    assert model is not None, "Core package must include real Amy model"
+    assert "lastlight_voice" in model.parts
+    assert model.stat().st_size == spec.files[spec.filenames()[0]]["bytes"]
+    assert model.with_name(model.name + ".json").is_file()
+    assert (model.parent / (spec.id + ".MODEL_CARD")).is_file()

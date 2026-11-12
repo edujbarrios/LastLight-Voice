@@ -70,27 +70,44 @@ def load_piper_catalog(path: str | Path | None = None) -> tuple[PiperVoiceSpec, 
 
 
 def find_local_model(spec: PiperVoiceSpec, models_dir: str | Path | None = None) -> Path | None:
-    """Locate a complete locally installed model in a directory or language wheel."""
-    paths = []
-    root = models_dir or os.environ.get("LASTLIGHT_VOICE_MODELS_DIR")
-    if root:
-        directory = Path(root).expanduser()
-        paths.extend((directory, directory / spec.id))
-    # Optional, independently published voice data wheel (no network access).
-    try:
-        package = importlib.import_module("lastlight_voice_models_" + spec.language)
-    except ModuleNotFoundError as exc:
-        if exc.name != "lastlight_voice_models_" + spec.language:
-            raise
+    """Find offline assets, prioritizing an explicit model directory.
+
+    By default the core wheel ships English Amy under lastlight_voice/voices.
+    Future language wheels and configured local catalogs remain supported.
+    Never downloads or modifies model data.
+    """
+    paths: list[Path] = []
+    if models_dir is not None:
+        # Explicit overrides are strict: callers can detect a missing model.
+        root = Path(models_dir).expanduser()
+        paths.extend((root, root / spec.id))
     else:
-        paths.append(Path(package.__file__).parent / "models")
+        configured = os.environ.get("LASTLIGHT_VOICE_MODELS_DIR")
+        if configured:
+            root = Path(configured).expanduser()
+            paths.extend((root, root / spec.id))
+        # Works identically with editable installations and built wheels.
+        paths.append(Path(__file__).resolve().parent / "voices" / spec.id)
+        # Future optional per-language packages remain discoverable.
+        module_name = "lastlight_voice_models_" + spec.language
+        try:
+            package = importlib.import_module(module_name)
+        except ModuleNotFoundError as exc:
+            if exc.name != module_name:
+                raise
+        else:
+            paths.append(Path(package.__file__).parent / "models")
+
     model, config = spec.filenames()
     for directory in paths:
         first, second = directory / model, directory / config
         try:
-            if (first.is_file() and second.is_file()
-                    and first.stat().st_size == spec.files[model]["bytes"]
-                    and second.stat().st_size == spec.files[config]["bytes"]):
+            if (
+                first.is_file()
+                and second.is_file()
+                and first.stat().st_size == spec.files[model]["bytes"]
+                and second.stat().st_size == spec.files[config]["bytes"]
+            ):
                 return first
         except OSError:
             continue

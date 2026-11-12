@@ -1,71 +1,45 @@
-# Piper Amy voice — internal release checklist (no upload)
+# Piper Amy — release checklist (review only)
 
-This is a **review candidate**, not evidence of a license grant. LastLight-Voice
-keeps its main MPL-2.0 package lightweight. Models are distributed only as
-separate optional language wheels; today the catalog contains **English Amy low
-only**. Future languages can be added to `piper_catalog.json` and packaged
-using the same build tool without changing `SpeechEngine` or `PiperBackend`.
+The default `lastlight-voice` distribution now **includes** the Piper
+`en_US-amy-low` model and automatically installs the `piper-tts` runtime.
+There is no extra, separate language wheel, manual configuration or runtime
+model download required for the default English voice.
 
-## Setup and local smoke test
+## Build and test
 
 ```bash
-python -m pip install -e '.[dev,piper]'
-python scripts/package_piper_voices.py --list
-# A human must review THIRD_PARTY_VOICES.md before the next command.
-python scripts/package_piper_voices.py --voice en_US-amy-low \
-    --models-dir voice_assets --prepare-packs --acknowledge-licenses
-python -m pip wheel --no-deps --wheel-dir dist/review-wheels \
-    dist/voice-pack-sources/lastlight-voice-model-en-en_US-amy-low
-python -m pip install dist/review-wheels/lastlight_voice_model_en-*.whl
-lastlight-voice voices --backend piper --language en
-lastlight-voice synthesize 'Knowledge is available offline.' voice.wav \
-    --backend piper --language en
+python -m pip install -e ".[dev]"
+pytest
+python -m build
+python -m pip install --force-reinstall dist/lastlight_voice-0.1.0-*.whl
+lastlight-voice synthesize --language en "Stay safe." voice.wav
 ```
 
-This review branch already contains verified Amy voice assets at
-`voice_assets/en_US-amy-low/`. No network access is needed for the commands
-above once dependencies have been installed. `--download` is optional for
-provisioning missing assets from upstream, and never runs at inference time.
-Piper CLI synthesis and model lookup never download anything. To test offline:
-install Piper and the voice wheel, disconnect the network, then run the
-`synthesize` command again. The default eSpeak NG backend is preserved for
-backward compatibility and low-RAM setups.
+Verify the built wheel and source archive include these files:
 
-The optional wheel can be built from the GitHub-tracked weights without any
-new model download. The voice wheel bundles `en_US-amy-low.onnx`, its `.onnx.json`, the upstream
-`MODEL_CARD`, and `THIRD_PARTY_VOICES.md`. The main code package carries none
-of these large model files. The inference engine is provided by optional
-`piper-tts` (GPL-3.0-or-later), installed separately. We have not verified a
-real Piper inference in the development container; the integration test uses a
-mocked executable to check subprocess arguments, WAV parsing and offline-only
-behavior.
+- `lastlight_voice/voices/en_US-amy-low/en_US-amy-low.onnx` (63,104,526 bytes)
+- `lastlight_voice/voices/en_US-amy-low/en_US-amy-low.onnx.json` (4,164 bytes)
+- `lastlight_voice/voices/en_US-amy-low/en_US-amy-low.MODEL_CARD` (273 bytes)
+- `lastlight_voice/voices/THIRD_PARTY_VOICES.md` (attribution)
 
-## Before uploading anything to PyPI
+Model SHA-256:
+`a5a91abb7de0f104358a25aded480ddacf1ff0762886325886ec406a2e86aab3`.
 
-**Note:** The full model is already present in the publicly accessible review
-branch, as requested. This is a source-repository upload, not a PyPI release
-or a validated grant of redistribution rights. Ensure the upstream rights
-review accounts for this existing GitHub distribution.
+The above build is for **local review**. For a real offline end-to-end test,
+install the package and dependencies, disconnect the network, and synthesize.
+Existing mocked backend tests cannot substitute for that real voice test.
 
-- [ ] Verify the complete Amy/Ryan training/license chain and written rights
-      for redistributing the model and intended uses. The umbrella MIT metadata
-      and an exculpatory statement are **not enough**.
-- [ ] Preserve the original `MODEL_CARD` and all attribution notices in the
-      voice wheel; validate its metadata and source revision.
-- [ ] Build a real wheel from verified weights; inspect the wheel ZIP to confirm
-      the `.onnx`, `.onnx.json`, `MODEL_CARD`, and notices are present.
-- [ ] Install the wheel in a clean venv with `piper-tts`, disconnect networking,
-      and run speech synthesis on each supported operating system/CPU.
-- [ ] Confirm installed footprint, model checksum, package file-size limit,
-      platform tags, naming and distribution metadata. The ONNX file is ~63 MB.
-- [ ] Run `pytest`, `python -m build` and `twine check dist/*` in a properly
-      provisioned release environment.
-- [ ] Review GPL-3.0-or-later obligations for optional Piper runtime use.
-- [ ] Only after maintainer approval, explicitly publish the **voice wheel** and
-      the **core package**. There is no uploader or automated publishing.
+## Before any PyPI upload
 
-## Attribution and risk disclosure
+- [ ] Review written rights for **Amy**, its Ryan low training base and original
+  data; the collection-level MIT label alone does not resolve those rights.
+- [ ] Confirm the GPL-3.0-or-later obligations of the now-required Piper runtime.
+- [ ] Check wheel and sdist contents, integrity, PyPI per-file size and Windows,
+  macOS, Linux, ARM64 / Raspberry Pi compatibility.
+- [ ] Test installation from a wheel in a clean virtual environment and
+  synthesize a WAV **with Internet disconnected**.
+- [ ] Run `pytest`, `python -m build` and `twine check dist/*`.
+- [ ] Review version number and changelog with the maintainer.
 
-See [`THIRD_PARTY_VOICES.md`](../THIRD_PARTY_VOICES.md). This project did not
-collect or train the underlying recordings. Source links and rights uncertainties
-are disclosed there. That non-involvement does not remove any legal duties.
+**No publishing credentials, PyPI uploads or publishing workflows are included.**
+See [THIRD_PARTY_VOICES.md](../THIRD_PARTY_VOICES.md).

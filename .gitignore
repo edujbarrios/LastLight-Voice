@@ -11,12 +11,6 @@ htmlcov/
 .DS_Store
 *.wav
 
-# Never commit Piper voice weights or local model cache
-*.onnx
-*.onnx.json
+# Local experiments and optional future voice downloads
 .piper-model-cache/
-
-# Large Piper ONNX assets are staged only for optional review wheels.
-.piper-model-cache/
-*.onnx
-*.onnx.json
+voice_assets/

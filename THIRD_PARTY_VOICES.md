@@ -1,60 +1,25 @@
-# Third-party voice notices and publication review
+# Piper Amy — third-party attribution and rights review
 
-The **LastLight-Voice** application code is MPL-2.0. The optional neural voice
-`en_US-amy-low` is **not authored by LastLight-Voice**.
+**Voice:** `en_US-amy-low` (U.S. English, 16 kHz) from
+[Rhasspy/Piper Voices](https://huggingface.co/rhasspy/piper-voices),
+pinned to the `v1.0.0` source. Thanks to Michael Hansen (`synesthesiam`),
+Piper/Rhasspy contributors, MycroftAI and the upstream model/dataset creators;
+their contributions are not owned or endorsed by LastLight-Voice.
 
-## Attribution
+- [Voice MODEL_CARD](https://huggingface.co/rhasspy/piper-voices/blob/v1.0.0/en/en_US/amy/low/MODEL_CARD):
+  references [MycroftAI Mimic 3 voices](https://github.com/MycroftAI/mimic3-voices),
+  says dataset license "See URL", and identifies a fine-tune from Ryan low.
+- [Piper voices repository](https://huggingface.co/rhasspy/piper-voices)
+  is labeled **MIT** at the collection level. **This is not proof that the
+  Amy weights and their training lineage are separately MIT-licensed.**
+- The [Piper runtime](https://github.com/OHF-Voice/piper1-gpl) is
+  GPL-3.0-or-later and is now a required dependency for the library.
+- LastLight-Voice code is MPL-2.0. The model weights are third-party assets
+  shipped in the package with the original MODEL_CARD.
 
-- **Voice:** `en_US-amy-low`, 16 kHz, single-speaker, Piper Voices (Rhasspy).
-- **Voice repository:** https://huggingface.co/rhasspy/piper-voices
-- **Version pinned for packaging:** `v1.0.0`.
-- **Voice maintainer / upstream contributor:** Michael Hansen (`synesthesiam`)
-  and the Rhasspy/Piper voice contributors. No endorsement is implied.
-- **Source model card:** https://huggingface.co/rhasspy/piper-voices/blob/v1.0.0/en/en_US/amy/low/MODEL_CARD
-- **Upstream data reference:** MycroftAI Mimic 3 Voices,
-  https://github.com/MycroftAI/mimic3-voices (repository marked CC BY-SA 4.0).
-- **Training provenance:** Piper's Amy low model card states that this voice was
-  *fine-tuned from the U.S. English Ryan low-quality voice*.
-- **Inference engine:** `piper-tts` (OHF-Voice/Piper contributors), **GPL-3.0-or-later**;
-  installed as a separate, optional Python dependency, not copied into this
-  project's source distribution. See https://github.com/OHF-Voice/piper1-gpl.
+LastLight-Voice did not create or curate the original recordings or train the
+underlying models. This does **not** waive legal responsibilities or provide
+redistribution permission. Rights to distribute Amy and its Ryan-derived
+weights must be independently reviewed before publishing a PyPI release.
 
-## Licensing position requested by the project
-
-The Hugging Face **collection-level** `rhasspy/piper-voices` README declares
-`license: mit` and the website displays **MIT**. LastLight-Voice identifies
-that public metadata as the basis for considering Amy in its packaging workflow,
-retains attribution and ships the original `MODEL_CARD` with any voice wheel.
-
-However, **the `en_US-amy-low` model card does not explicitly license the model
-weights under MIT**; it points to Mimic 3 datasets and the Ryan fine-tuning base.
-Piper's current maintainers explicitly state that the collection label is not
-an independent license grant for each voice, and list Amy/Ryan among voices with
-unresolved/restrictive dataset rights. Therefore **MIT coverage of Amy's trained
-weights and commercial/redistribution rights have not been established**.
-
-LastLight-Voice did not create, collect, curate or train on the source recordings;
-training data and voice recordings were supplied by third parties. This is a
-statement of provenance and non-endorsement, **not a warranty, legal immunity,
-release from applicable duties, or a replacement for upstream license terms**.
-The project does not claim rights it cannot verify.
-
-**GitHub staging:** The pinned `en_US-amy-low` ONNX, configuration and original
-MODEL_CARD have been committed to the public GitHub review branch at
-`voice_assets/en_US-amy-low/`. Their inclusion in GitHub does not itself
-establish ownership or resolve the licensing uncertainties described above.
-No voice wheel has been published to PyPI.
-
-**Publication gate:** The build tool may stage an *internal review wheel* only
-when invoked explicitly with `--acknowledge-licenses`. This flag records a
-human review decision; it does not establish legal permission. Before any
-public upload, the maintainer must confirm the model's redistribution rights,
-review the Ryan base, preserve notices, and re-check the licensing and PyPI
-requirements. **No upload action is included in this repository.**
-
-Sources:
-- https://huggingface.co/rhasspy/piper-voices/blob/v1.0.0/README.md
-- https://huggingface.co/rhasspy/piper-voices/blob/v1.0.0/en/en_US/amy/low/MODEL_CARD
-- https://github.com/OHF-Voice/piper1-gpl/blob/main/docs/LICENSING.md
-- https://github.com/OHF-Voice/piper1-gpl/blob/main/docs/COMMERCIAL_USE.md
-- https://github.com/MycroftAI/mimic3-voices
+No PyPI publishing action is included.

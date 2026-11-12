@@ -101,7 +101,7 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--list", action="store_true", help="Show available catalog entries")
     parser.add_argument("--voice", action="append", default=[], help="Selected voice ID (repeatable)")
-    parser.add_argument("--models-dir", type=Path, default=Path(".piper-model-cache"))
+    parser.add_argument("--models-dir", type=Path, default=ROOT / "src" / "lastlight_voice" / "voices")
     parser.add_argument("--output-dir", type=Path, default=Path("dist/voice-pack-sources"))
     parser.add_argument("--download", action="store_true", help="Explicitly download model assets (requires Internet)")
     parser.add_argument("--prepare-packs", action="store_true", help="Generate one independent package per selected voice")
