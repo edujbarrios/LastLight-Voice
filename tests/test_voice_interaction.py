@@ -87,7 +87,8 @@ def test_bundled_stt_model_is_ready_for_offline_use() -> None:
     recognizer = VoskTranscriber(language="en_US")
     assert recognizer.language == "en"
     assert recognizer.model_available()
-    assert recognizer.available()
+    # An available model does not guarantee CI has a physical microphone
+    # or the system PortAudio library.
     assert (recognizer.model_dir / "graph" / "HCLr.fst").stat().st_size > 1_000
 
 
@@ -182,7 +183,6 @@ def test_cli_interact_no_speech(monkeypatch, capsys) -> None:
 def test_speaker_can_use_raw_portaudio_without_output_file(monkeypatch) -> None:
     import io
     import wave
-    import sounddevice
     from lastlight_voice.audio import AudioBuffer
     from lastlight_voice.backends.piper import PiperBackend
 
@@ -206,6 +206,7 @@ def test_speaker_can_use_raw_portaudio_without_output_file(monkeypatch) -> None:
         def write(self, data):
             played.append(data)
 
-    monkeypatch.setattr(sounddevice, "RawOutputStream", RawOutput)
+    fake_sd = types.SimpleNamespace(RawOutputStream=RawOutput)
+    monkeypatch.setitem(sys.modules, "sounddevice", fake_sd)
     backend.speak("hello", language="en")
     assert played == [b"\x00\x00" * 160]

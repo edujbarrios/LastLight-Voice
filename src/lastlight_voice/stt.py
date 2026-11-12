@@ -88,11 +88,16 @@ class VoskTranscriber:
         return all((self.model_dir / filename).is_file() for filename in self._required)
 
     def available(self) -> bool:
-        return (
-            self.model_available()
-            and importlib.util.find_spec("vosk") is not None
-            and importlib.util.find_spec("sounddevice") is not None
-        )
+        if not self.model_available():
+            return False
+        if importlib.util.find_spec("vosk") is None:
+            return False
+        try:
+            import sounddevice
+        except (ImportError, OSError):
+            # Linux often needs the system libportaudio2 package.
+            return False
+        return True
 
     def listen_once(self, *, timeout_seconds: float = 10.0) -> str:
         """Record at most timeout_seconds of microphone audio, return a transcript.
