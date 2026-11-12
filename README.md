@@ -1,271 +1,81 @@
 # LastLight-Voice
 
-**Offline speech for LastLight, built for constrained environments.**
+**Offline text-to-speech for LastLight.** Local synthesis, no cloud APIs, telemetry or runtime downloads.
 
-LastLight-Voice is an open-source, low-resource speech runtime for [LastLight](https://github.com/edujbarrios/lastlight) and other infrastructure-constrained environments.
+## Features
 
-Its purpose is to keep local knowledge accessible when a keyboard, screen, network connection, or even free hands are unavailable. The project starts with lightweight offline text-to-speech and is designed to evolve toward offline speech-to-text and hands-free LastLight interaction without cloud APIs, telemetry, or runtime downloads.
+- **eSpeak NG (default):** low-resource English and Spanish speech.
+- **Piper (optional):** English neural voice `en_US-amy-low` (~63 MB ONNX), stored in this review branch.
+- **Python API:** `SpeechEngine.say()`, `synthesize()`, `save()`, and `voices()`.
+- **CLI:** `speak`, `synthesize`, `voices`, `doctor`, and `inspect`.
+- **Offline-first:** explicit backend selection, no model downloads during synthesis.
+- **Extensible voices:** JSON voice catalog and separate language wheels for future languages.
+- **Testing:** deterministic dummy backend and Python 3.10+ tests.
 
-## Status
+Speech-to-text and wake words are not implemented yet.
 
-`0.1.0` is an early alpha focused on a small, auditable TTS foundation. It currently provides:
-
-- a typed `SpeechEngine` API;
-- a deterministic `DummyTTSBackend` for tests and integrations;
-- low-resource eSpeak NG support on systems where `espeak-ng` is installed;
-- English and Spanish language selection for eSpeak NG;
-- optional Piper English voice registration (Amy low); source weights are committed in `voice_assets/` on the review branch, but are not included in the lightweight core Python wheel;
-- direct speech and WAV synthesis;
-- local-only `doctor` and `inspect` diagnostics;
-- an optional LastLight query-result adapter;
-- tests and CI on Python 3.10, 3.11, and 3.12.
-
-Speech-to-text, wake words and VAD remain roadmap work. Piper remains experimental and opt-in. The core wheel contains no weights; the GitHub review branch contains the pinned Amy weights.
-
-## Design principles
-
-- **Offline-first runtime.** No cloud APIs, telemetry, update checks, or automatic downloads.
-- **Low-resource by default.** Prefer the smallest viable speech backend over higher-quality but more expensive alternatives.
-- **English neural voice first.** Piper currently registers Amy low; eSpeak keeps English and Spanish support.
-- **Auditable behavior.** Backend selection and failures should remain explicit.
-- **Independent runtime.** LastLight integration is optional; `lastlight_voice` works standalone.
-- **Open source.** Source code is licensed under MPL-2.0.
-
-## Development install
-
-LastLight-Voice is not published to PyPI yet. Install it from a checkout:
+## Install (GitHub review branch)
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -e .
-```
-
-For development and tests:
-
-```bash
-python -m pip install -e ".[dev]"
-pytest
-```
-
-The Python package has no mandatory runtime dependencies. Real speech in v0.1 uses a locally installed `espeak-ng` executable. Install eSpeak NG using your operating system's package manager before using the real backend.
-
-## Python API
-
-```python
-from lastlight_voice import SpeechEngine
-
-speech = SpeechEngine(language="en")
-speech.say("LastLight Voice is running offline.")
-```
-
-Spanish:
-
-```python
-speech = SpeechEngine(language="es")
-speech.say("LastLight Voice está funcionando sin conexión.")
-```
-
-Synthesize to memory:
-
-```python
-audio = speech.synthesize("Emergency information is available locally.")
-print(audio.sample_rate, audio.channels, audio.duration)
-```
-
-Synthesize directly to a WAV file:
-
-```python
-output = speech.save("Emergency information is available locally.", "answer.wav")
-print(output)
-```
-
-For deterministic tests without audio hardware:
-
-```python
-speech = SpeechEngine(backend="dummy")
-```
-
-The dummy backend is never selected silently during normal use.
-
-## CLI
-
-Check the local machine without making any network request:
-
-```bash
-lastlight-voice doctor
-```
-
-Machine-readable diagnostics:
-
-```bash
-lastlight-voice inspect
-```
-
-Speak English:
-
-```bash
-lastlight-voice speak "LastLight Voice is running offline."
-```
-
-Speak Spanish:
-
-```bash
-lastlight-voice speak --language es "La información está disponible sin conexión."
-```
-
-Create a WAV file:
-
-```bash
-lastlight-voice synthesize "Emergency information" answer.wav
-```
-
-List voices exposed by the selected backend:
-
-```bash
-lastlight-voice voices --language en
-```
-
-## Optional Piper voice: English only
-
-The experimental Piper backend registers only `en_US-amy-low` (English, US). It
-uses a data-driven JSON catalog (`src/lastlight_voice/piper_catalog.json`), so
-future languages and voices need no speech-engine rewrite. The existing
-English/Spanish eSpeak NG backend remains the default.
-
-**Licensing gate:** Amy low's upstream MODEL_CARD says its dataset license is
-`See URL` and that it was fine-tuned from the Ryan low model. Rights to
-redistribute the resulting weights have not been established here. Do **not**
-publish an Amy model wheel on PyPI until you have independently confirmed
-the voice and training-lineage rights. The downloaded model is committed to
-`voice_assets/en_US-amy-low/` on this public GitHub review branch.
-
-Install Piper as an opt-in dependency (current `piper-tts` is GPL-3.0-or-later,
-which may affect how you distribute integrations), then explicitly prepare
-the voice from the verified files already checked into this branch:
-
-```sh
+git clone --branch feat/piper-amy-pypi-review https://github.com/edujbarrios/LastLight-Voice.git
+cd LastLight-Voice
 python -m pip install -e ".[piper]"
-python scripts/package_piper_voices.py --list
-python scripts/package_piper_voices.py --voice en_US-amy-low --models-dir voice_assets
-export LASTLIGHT_VOICE_MODELS_DIR=voice_assets
-lastlight-voice synthesize --backend piper --language en "Stay safe." speech.wav
 ```
 
-On Windows PowerShell, use
-`$env:LASTLIGHT_VOICE_MODELS_DIR='voice_assets'` instead of `export`.
-After provisioning, inference works without network access. No downloads
-occur at import, installation or synthesis time.
+**What gets installed?**
 
-Python API:
+| Command | What it does |
+| --- | --- |
+| `pip install -e .` | Installs the core library, **not** Piper or any voice weights |
+| `pip install -e ".[piper]"` | Installs the core library **and the Piper runtime**, but does **not** download weights |
+| `git clone --branch feat/piper-amy-pypi-review …` | Fetches the model already committed to GitHub under `voice_assets/en_US-amy-low/` |
+
+The model is currently **in the review branch, not `main`**, and is **not included in the core pip wheel**. eSpeak NG must be installed separately if you want its lightweight backend.
+
+## Use Piper offline (English)
+
+Point the backend at the model that came with your Git clone:
+
+```bash
+export LASTLIGHT_VOICE_MODELS_DIR="$PWD/voice_assets"
+lastlight-voice synthesize --backend piper --language en \
+  "Knowledge remains available offline." voice.wav
+```
+
+PowerShell: `$env:LASTLIGHT_VOICE_MODELS_DIR = (Resolve-Path voice_assets).Path`
+
+Or use Python without an environment variable:
 
 ```python
 from lastlight_voice import SpeechEngine
 from lastlight_voice.backends.piper import PiperBackend
 
-engine = SpeechEngine(
-    language="en",
-    backend=PiperBackend(models_dir="voice_assets"),
-)
-engine.save("Knowledge remains available offline.", "speech.wav")
+speech = SpeechEngine(language="en", backend=PiperBackend(models_dir="voice_assets"))
+speech.save("Stay safe.", "voice.wav")
 ```
 
-**Future PyPI voice packs:** after confirming redistribution rights, run the
-separate explicit `--models-dir voice_assets --prepare-packs --acknowledge-licenses` option to generate
-the source for a local English voice wheel containing ONNX, JSON and MODEL_CARD.
-Use `python -m build --wheel <generated-directory>` to build that wheel.
-The wheel name is `lastlight-voice-model-en` and is discovered automatically
-when installed alongside the main package. It is not currently published.
-The English model is around 63.1 MB before wheel compression and dependencies.
-Separate voice wheels let the core package stay small as new languages arrive.
+The model and Piper must be installed locally **before** going offline. No network is used during synthesis.
 
-Custom local model directories may contain the two voice files either
-directly or inside a directory named `en_US-amy-low`. The engine never
-silently falls back to another voice if an expected Piper model is missing.
-
-### Amy packaging and licensing review
-
-The [Piper voice collection](https://huggingface.co/rhasspy/piper-voices) is
-marked **MIT** at repository level. This is the public metadata on which
-the project bases its packaging review. However, Amy's individual MODEL_CARD
-does **not** grant MIT rights over the weights: it identifies MycroftAI Mimic 3
-and a Ryan fine-tuning base. Piper's maintainers caution that the repository
-label does not resolve individual voice rights.
-
-LastLight-Voice did not collect or train the source recordings and does not
-claim ownership of them. This fact does not waive redistribution obligations.
-Credits are preserved for Michael Hansen, Rhasspy/Piper contributors, MycroftAI
-and original voice/dataset providers.
-
-Read [third-party attribution and risks](THIRD_PARTY_VOICES.md) and the
-[PyPI release checklist](docs/PIPER_RELEASE_REVIEW.md) before distributing.
-The build tool produces a **review-only** optional voice wheel when explicitly
-requested; it never uploads it. The core Python wheel stays small; the GitHub
-review branch now tracks the 63 MB ONNX source asset directly, which increases
-repository clone size. The model remains subject to the upstream rights review.
-
-After both distributions are reviewed and published, the future optional
-`lastlight-voice[amy]` extra can install Piper and the separate
-`lastlight-voice-model-en` wheel. It cannot resolve before that model wheel
-exists on the package index. No runtime code downloads model files.
-
-## Offline contract
-
-Normal runtime behavior must not require a network connection. The core intentionally performs no:
-
-- HTTP requests;
-- cloud speech calls;
-- telemetry;
-- automatic model downloads;
-- automatic update checks;
-- account or API-token authentication.
-
-External speech engines or future models must be installed explicitly before offline use.
-
-## LastLight integration
-
-LastLight remains the authority for retrieval and refusal. LastLight-Voice only speaks the result; it does not generate or rewrite knowledge.
+## Use eSpeak NG or the CLI
 
 ```python
-from lastlight import LastLight
 from lastlight_voice import SpeechEngine
-from lastlight_voice.integrations.lastlight import speak_query_result
 
-knowledge = LastLight("lastlight-example-en.zip")
-speech = SpeechEngine(language="en")
-
-result = knowledge.query("How long will food stay safe in the refrigerator?")
-speak_query_result(result, speech)
+SpeechEngine(language="es").say("La información está disponible sin conexión.")
+SpeechEngine(backend="dummy").save("Test", "test.wav")
 ```
 
-If `result.accepted` is false, the adapter speaks a deterministic refusal instead of inventing an answer.
-
-## Long-term direction
-
-```text
-microphone
-   |
-   v
-offline STT
-   |
-   v
-LastLight
-   |
-   v
-offline TTS
-   |
-   v
-speaker
+```bash
+lastlight-voice doctor
+lastlight-voice inspect
+lastlight-voice voices --backend piper --language en
 ```
 
-The target is hands-free, fully local access to LastLight in emergency and infrastructure-failure environments where conventional input devices may be unavailable or impractical.
+## Packaging and license
 
-Future work will remain biased toward small English/Spanish models, measurable resource use, graceful fallback, and Raspberry Pi / low-power Linux hardware.
+- **PyPI:** not published. The lightweight `lastlight-voice` core and optional `lastlight-voice-model-en` voice wheel are prepared for review, not release.
+- **Model source:** [Piper Voices](https://huggingface.co/rhasspy/piper-voices), maintained by Michael Hansen and the Rhasspy/Piper community; the original `MODEL_CARD` is included.
+- **Rights:** the Piper voice collection is labeled MIT, but Amy's model card references Mimic 3 and a Ryan-derived training lineage. Rights to redistribute the trained weights still require review.
+- **Licenses:** application code MPL-2.0; optional Piper runtime has its own GPL license. See [third-party credits and licensing](THIRD_PARTY_VOICES.md) and the [PyPI release checklist](docs/PIPER_RELEASE_REVIEW.md).
 
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md). New runtime dependencies, network access, or significantly heavier models should be justified against the project's low-resource and offline goals.
-
-## License
-
-Mozilla Public License 2.0. See [LICENSE](LICENSE).
+[LastLight integration](src/lastlight_voice/integrations/lastlight.py) · [Contributing](CONTRIBUTING.md) · [License](LICENSE)
