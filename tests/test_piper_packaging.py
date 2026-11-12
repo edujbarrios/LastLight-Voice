@@ -94,3 +94,16 @@ def test_amy_model_is_bundled_for_editable_and_normal_installs():
     assert model.stat().st_size == spec.files[spec.filenames()[0]]["bytes"]
     assert model.with_name(model.name + ".json").is_file()
     assert (model.parent / (spec.id + ".MODEL_CARD")).is_file()
+
+
+def test_piper_cli_detected_next_to_python_without_path(tmp_path, monkeypatch):
+    """Wheel-installed command works when invoked by absolute path."""
+    from lastlight_voice.backends.piper import PiperBackend
+    scripts = tmp_path / "venv" / "bin"
+    scripts.mkdir(parents=True)
+    executable = scripts / "piper"
+    executable.write_text("#!/bin/sh\n", encoding="utf-8")
+    monkeypatch.setattr("lastlight_voice.backends.piper.sys.executable", str(scripts / "python"))
+    monkeypatch.setattr("lastlight_voice.backends.piper.shutil.which", lambda _: None)
+    backend = PiperBackend(models_dir=tmp_path / "missing")
+    assert backend._executable == str(executable)
