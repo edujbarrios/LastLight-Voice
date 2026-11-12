@@ -54,3 +54,9 @@ jobs:
               assert archive.getinfo("lastlight_voice/voices/THIRD_PARTY_VOICES.md").file_size > 0
           print("Verified Amy ONNX, JSON, MODEL_CARD and attribution inside wheel")
           PY
+      - name: Install built wheel in isolated venv and synthesize with Piper
+        run: |
+          python -m venv .wheel-test
+          .wheel-test/bin/python -m pip install dist/lastlight_voice-0.1.0-*.whl
+          (cd /tmp && "$GITHUB_WORKSPACE/.wheel-test/bin/lastlight-voice" synthesize --language en "Bundled voice works offline." "$GITHUB_WORKSPACE/wheel-test.wav")
+          test -s wheel-test.wav
