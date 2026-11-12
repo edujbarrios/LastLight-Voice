@@ -14,13 +14,13 @@ Its purpose is to keep local knowledge accessible when a keyboard, screen, netwo
 - a deterministic `DummyTTSBackend` for tests and integrations;
 - low-resource eSpeak NG support on systems where `espeak-ng` is installed;
 - English and Spanish language selection for eSpeak NG;
-- optional Piper English voice registration (Amy low), without bundled weights or runtime downloads;
+- optional Piper English voice registration (Amy low); source weights are committed in `voice_assets/` on the review branch, but are not included in the lightweight core Python wheel;
 - direct speech and WAV synthesis;
 - local-only `doctor` and `inspect` diagnostics;
 - an optional LastLight query-result adapter;
 - tests and CI on Python 3.10, 3.11, and 3.12.
 
-Speech-to-text, wake words and VAD remain roadmap work. The Piper backend is experimental and opt-in; no voice weights are bundled.
+Speech-to-text, wake words and VAD remain roadmap work. Piper remains experimental and opt-in. The core wheel contains no weights; the GitHub review branch contains the pinned Amy weights.
 
 ## Design principles
 
@@ -137,22 +137,23 @@ English/Spanish eSpeak NG backend remains the default.
 `See URL` and that it was fine-tuned from the Ryan low model. Rights to
 redistribute the resulting weights have not been established here. Do **not**
 publish an Amy model wheel on PyPI until you have independently confirmed
-the voice and training-lineage rights. No model weights are in this repository.
+the voice and training-lineage rights. The downloaded model is committed to
+`voice_assets/en_US-amy-low/` on this public GitHub review branch.
 
 Install Piper as an opt-in dependency (current `piper-tts` is GPL-3.0-or-later,
 which may affect how you distribute integrations), then explicitly prepare
-the voice once while online:
+the voice from the verified files already checked into this branch:
 
 ```sh
 python -m pip install -e ".[piper]"
 python scripts/package_piper_voices.py --list
-python scripts/package_piper_voices.py --voice en_US-amy-low --download
-export LASTLIGHT_VOICE_MODELS_DIR=.piper-model-cache
+python scripts/package_piper_voices.py --voice en_US-amy-low --models-dir voice_assets
+export LASTLIGHT_VOICE_MODELS_DIR=voice_assets
 lastlight-voice synthesize --backend piper --language en "Stay safe." speech.wav
 ```
 
 On Windows PowerShell, use
-`$env:LASTLIGHT_VOICE_MODELS_DIR='.piper-model-cache'` instead of `export`.
+`$env:LASTLIGHT_VOICE_MODELS_DIR='voice_assets'` instead of `export`.
 After provisioning, inference works without network access. No downloads
 occur at import, installation or synthesis time.
 
@@ -164,13 +165,13 @@ from lastlight_voice.backends.piper import PiperBackend
 
 engine = SpeechEngine(
     language="en",
-    backend=PiperBackend(models_dir=".piper-model-cache"),
+    backend=PiperBackend(models_dir="voice_assets"),
 )
 engine.save("Knowledge remains available offline.", "speech.wav")
 ```
 
 **Future PyPI voice packs:** after confirming redistribution rights, run the
-separate explicit `--prepare-packs --acknowledge-licenses` option to generate
+separate explicit `--models-dir voice_assets --prepare-packs --acknowledge-licenses` option to generate
 the source for a local English voice wheel containing ONNX, JSON and MODEL_CARD.
 Use `python -m build --wheel <generated-directory>` to build that wheel.
 The wheel name is `lastlight-voice-model-en` and is discovered automatically
@@ -199,7 +200,9 @@ and original voice/dataset providers.
 Read [third-party attribution and risks](THIRD_PARTY_VOICES.md) and the
 [PyPI release checklist](docs/PIPER_RELEASE_REVIEW.md) before distributing.
 The build tool produces a **review-only** optional voice wheel when explicitly
-requested; it never uploads it. Source releases keep large weights out of Git.
+requested; it never uploads it. The core Python wheel stays small; the GitHub
+review branch now tracks the 63 MB ONNX source asset directly, which increases
+repository clone size. The model remains subject to the upstream rights review.
 
 After both distributions are reviewed and published, the future optional
 `lastlight-voice[amy]` extra can install Piper and the separate
