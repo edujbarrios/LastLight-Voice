@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MPL-2.0
-"""Local Piper voice catalog and discovery: no runtime network calls."""
+"""Offline Piper voice catalog and resource discovery; never downloads at runtime."""
 
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ class PiperVoiceSpec:
 
 
 def load_piper_catalog(path: str | Path | None = None) -> tuple[PiperVoiceSpec, ...]:
-    """Load a package or custom catalog, validating voice IDs and asset filenames."""
+    """Read a checked-in or explicitly supplied catalog with validated filenames."""
     if path is None:
         text = resources.files("lastlight_voice").joinpath("piper_catalog.json").read_text(encoding="utf-8")
     else:
@@ -59,6 +59,8 @@ def load_piper_catalog(path: str | Path | None = None) -> tuple[PiperVoiceSpec, 
                     raise ValueError(f"Unexpected filename: {filename}")
                 if type(meta["bytes"]) is not int or meta["bytes"] <= 0 or not re.fullmatch(r"[0-9a-f]{32}", meta["md5"]):
                     raise ValueError(f"Invalid file metadata: {filename}")
+                if "sha256" in meta and not re.fullmatch(r"[0-9a-f]{64}", meta["sha256"]):
+                    raise ValueError(f"Invalid SHA-256: {filename}")
             specs.append(PiperVoiceSpec(name, raw["language"], raw["quality"], directory, raw["files"]))
         if len({x.id for x in specs}) != len(specs):
             raise ValueError("Duplicate voice IDs")
@@ -68,18 +70,17 @@ def load_piper_catalog(path: str | Path | None = None) -> tuple[PiperVoiceSpec, 
 
 
 def find_local_model(spec: PiperVoiceSpec, models_dir: str | Path | None = None) -> Path | None:
-    """Find a complete local model in a directory or an optional installed voice wheel."""
-    paths: list[Path] = []
+    """Locate a complete locally installed model in a directory or language wheel."""
+    paths = []
     root = models_dir or os.environ.get("LASTLIGHT_VOICE_MODELS_DIR")
     if root:
         directory = Path(root).expanduser()
         paths.extend((directory, directory / spec.id))
-    # A separately packaged voice is discoverable without importing Piper or accessing a network.
-    package_name = "lastlight_voice_models_" + spec.language
+    # Optional, independently published voice data wheel (no network access).
     try:
-        package = importlib.import_module(package_name)
+        package = importlib.import_module("lastlight_voice_models_" + spec.language)
     except ModuleNotFoundError as exc:
-        if exc.name != package_name:
+        if exc.name != "lastlight_voice_models_" + spec.language:
             raise
     else:
         paths.append(Path(package.__file__).parent / "models")
