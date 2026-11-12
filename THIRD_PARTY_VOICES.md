@@ -39,6 +39,12 @@ statement of provenance and non-endorsement, **not a warranty, legal immunity,
 release from applicable duties, or a replacement for upstream license terms**.
 The project does not claim rights it cannot verify.
 
+**GitHub staging:** The pinned `en_US-amy-low` ONNX, configuration and original
+MODEL_CARD have been committed to the public GitHub review branch at
+`voice_assets/en_US-amy-low/`. Their inclusion in GitHub does not itself
+establish ownership or resolve the licensing uncertainties described above.
+No voice wheel has been published to PyPI.
+
 **Publication gate:** The build tool may stage an *internal review wheel* only
 when invoked explicitly with `--acknowledge-licenses`. This flag records a
 human review decision; it does not establish legal permission. Before any
