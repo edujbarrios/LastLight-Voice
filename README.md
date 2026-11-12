@@ -1,56 +1,81 @@
 # LastLight-Voice
 
-**Offline text-to-speech for [LastLight](https://github.com/edujbarrios/lastlight) and Python applications.** No cloud services or runtime model downloads.
+**Offline voice interaction for [LastLight](https://github.com/edujbarrios/lastlight) and Python.** Listen, transcribe and answer aloud without a cloud service.
 
 ## Features
 
-- **English:** Piper TTS with bundled `en_US-amy-low` model (~63 MB), selected automatically.
-- **Spanish:** eSpeak NG (requires the system executable).
-- **API + CLI:** speak, synthesize WAV, list voices, inspect and diagnose.
-- **Extensible:** local voice catalog designed for adding languages; optional LastLight integration.
-- **Offline inference:** model weights and configuration are included in the package.
+- **Speech-to-text (English):** bundled Vosk small model; records directly from your microphone.
+- **Text-to-speech:** bundled Piper Amy voice for English; eSpeak NG for Spanish if installed.
+- **Interaction:** microphone → transcript → spoken acknowledgement, without output files.
+- **Extensible:** inject a response handler to use LastLight results in the future.
+- **Python API and CLI:** speech synthesis, conversation, diagnostics.
 
 ## Install
 
-Not yet on PyPI. Install the current **`main` branch** directly:
+The library is not yet published on PyPI. Install from GitHub:
 
 ```bash
-python -m pip install "git+https://github.com/edujbarrios/LastLight-Voice.git"
+pip install "git+https://github.com/edujbarrios/LastLight-Voice.git"
 ```
 
-For development (editable install):
+For an editable development installation:
 
 ```bash
 git clone https://github.com/edujbarrios/LastLight-Voice.git
 cd LastLight-Voice
-python -m pip install -e .
+pip install -e .
 ```
 
-**Both commands install Piper and the English Amy voice automatically.** No `[piper]` extra, model download, or environment variables are needed. Installation may use the Internet for GitHub and Python dependencies; **synthesis works offline** afterward. For Spanish, install `espeak-ng` separately with your system package manager.
+The default installation includes **Piper, Amy, Vosk and the English STT model**.
+You need a working microphone and speakers with PortAudio support; on some
+Linux systems you may need the system `libportaudio2` package. Model inference
+and the exchange of voice messages work **without an Internet connection**.
+Installation may need Internet access for dependencies.
 
-## Usage
-
-```python
-from lastlight_voice import SpeechEngine
-
-speech = SpeechEngine(language="en")  # Piper Amy
-speech.save("Emergency information is available offline.", "message.wav")
-speech.say("Stay safe.")  # Requires a local audio player
-
-# If eSpeak NG is installed:
-SpeechEngine(language="es").save("Información disponible sin conexión.", "es.wav")
-```
+## Talk to the library
 
 ```bash
-lastlight-voice synthesize --language en "LastLight works offline." voice.wav
-lastlight-voice voices --backend piper --language en
+lastlight-voice interact
+```
+
+Speak in English. It transcribes the first utterance and replies aloud:
+**“Hello, I have received your message.”** No WAV file path is required.
+
+```bash
+lastlight-voice interact --seconds 15
 lastlight-voice doctor
 ```
 
-## Licenses and attribution
+## Python API
 
-LastLight-Voice code: **MPL-2.0**. Piper runtime: **GPL-3.0-or-later**. English voice: **Piper/Rhasspy Amy low**, credited to Michael Hansen, Piper contributors and upstream providers. The model and original `MODEL_CARD` ship with the package.
+```python
+from lastlight_voice import VoiceInteraction, SpeechEngine
 
-The Piper voice repository is tagged MIT, but **Amy's individual model card does not independently establish redistribution rights for its weights or Ryan-derived training lineage**. Review this before PyPI publication.
+VoiceInteraction().interact_once()  # Listen -> transcribe -> speak
 
-[Third-party voice notices](THIRD_PARTY_VOICES.md) · [PyPI release checklist](docs/PIPER_RELEASE_REVIEW.md) · [Architecture](docs/architecture.md) · [License](LICENSE)
+tts = SpeechEngine(language="en")  # Piper Amy automatically
+tts.say("LastLight is available offline.")
+```
+
+To prepare for future LastLight integration, replace only the response callback:
+
+```python
+from lastlight_voice import VoiceInteraction
+
+def respond(transcript: str) -> str:
+    # Future: send transcript to LastLight and return an approved passage
+    return "Hello, I have received your message."
+
+VoiceInteraction(responder=respond).interact_once()
+```
+
+English STT and Piper are installed automatically. Spanish currently supports
+**eSpeak NG TTS only**; Spanish transcription requires an additional STT model.
+
+## Licenses
+
+Library: **MPL-2.0**; Piper runtime: **GPL-3.0-or-later**; Vosk STT/model:
+**Apache-2.0**. Piper Amy's source repository is marked MIT, but its individual
+model/derivation rights still need review before PyPI publication.
+
+[STT model attribution](THIRD_PARTY_STT.md) · [Piper voice attribution](THIRD_PARTY_VOICES.md) · [Architecture](docs/architecture.md) · [License](LICENSE)

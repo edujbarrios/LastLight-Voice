@@ -29,8 +29,26 @@ The above build is for **local review**. For a real offline end-to-end test,
 install the package and dependencies, disconnect the network, and synthesize.
 Existing mocked backend tests cannot substitute for that real voice test.
 
+## English STT and package-size considerations
+
+The default package also bundles the Apache-2.0 licensed Vosk small English
+recognizer and uses `sounddevice` for microphone capture and local playback.
+The CI-built wheel is approximately **99.5 MB** with both models, close to
+PyPI's usual 100 MB per-file limit. Recheck the exact sdist/wheel sizes and
+supported operating systems before publishing. A separate model distribution
+may be necessary when adding more languages.
+
+CI verifies real offline Piper-to-Vosk speech transcription from a generated
+WAV and a clean wheel installation. Microphone access and speaker playback
+must still be tested manually on physical devices; many Linux installations
+require `libportaudio2`.
+
 ## Before any PyPI upload
 
+- [ ] Verify Vosk model/source license and retain Apache-2.0 text and attribution.
+- [ ] Test recording and playback with actual microphone and speakers on Linux,
+  macOS and Windows, including PortAudio installation and permission prompts.
+- [ ] Check both wheel and sdist are accepted by the target package index.
 - [ ] Review written rights for **Amy**, its Ryan low training base and original
   data; the collection-level MIT label alone does not resolve those rights.
 - [ ] Confirm the GPL-3.0-or-later obligations of the now-required Piper runtime.

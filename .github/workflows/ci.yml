@@ -30,6 +30,25 @@ jobs:
           lastlight-voice voices --backend piper --language en
           lastlight-voice synthesize --language en "LastLight works offline." smoke-piper.wav
           test -s smoke-piper.wav
+      - name: Check bundled STT model can transcribe local synthetic speech
+        run: |
+          lastlight-voice synthesize --language en "Hello, I have received your message. Knowledge remains available offline." stt-example.wav
+          python - <<'PY'
+          import json
+          import wave
+          from vosk import Model, KaldiRecognizer
+          from lastlight_voice import VoskTranscriber
+          stt = VoskTranscriber()
+          assert stt.model_available()
+          with wave.open("stt-example.wav", "rb") as wav:
+              assert wav.getnchannels() == 1 and wav.getsampwidth() == 2
+              rec = KaldiRecognizer(Model(str(stt.model_dir)), wav.getframerate())
+              while frames := wav.readframes(4000):
+                  rec.AcceptWaveform(frames)
+              text = json.loads(rec.FinalResult()).get("text", "")
+          print("Offline Vosk recognizer heard:", repr(text))
+          assert text.strip(), "Offline recognizer could not decode Piper-generated local speech"
+          PY
 
   build:
     runs-on: ubuntu-latest
@@ -54,9 +73,26 @@ jobs:
               assert archive.getinfo("lastlight_voice/voices/THIRD_PARTY_VOICES.md").file_size > 0
           print("Verified Amy ONNX, JSON, MODEL_CARD and attribution inside wheel")
           PY
+      - name: Check Vosk STT model and Apache attribution in wheel
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          wheel = next(Path("dist").glob("lastlight_voice-*.whl"))
+          root = "lastlight_voice/stt_models/vosk-model-small-en-us-0.15/"
+          with ZipFile(wheel) as archive:
+              for item in ("am/final.mdl", "graph/HCLr.fst", "graph/Gr.fst", "conf/model.conf"):
+                  assert archive.getinfo(root + item).file_size > 0, item
+              assert archive.getinfo("lastlight_voice/stt_models/APACHE-2.0.txt").file_size > 9000
+              assert archive.getinfo("lastlight_voice/stt_catalog.json").file_size > 0
+              assert archive.getinfo("lastlight_voice/stt_models/THIRD_PARTY_STT.md").file_size > 0
+          print(f"Wheel archive: {wheel.stat().st_size:,} bytes")
+          print("Verified bundled Vosk STT model and Apache-2.0 attribution")
+          PY
       - name: Install built wheel in isolated venv and synthesize with Piper
         run: |
           python -m venv .wheel-test
           .wheel-test/bin/python -m pip install dist/lastlight_voice-0.1.0-*.whl
           (cd /tmp && "$GITHUB_WORKSPACE/.wheel-test/bin/lastlight-voice" synthesize --language en "Bundled voice works offline." "$GITHUB_WORKSPACE/wheel-test.wav")
           test -s wheel-test.wav
+          (cd /tmp && "$GITHUB_WORKSPACE/.wheel-test/bin/python" -c "from lastlight_voice import VoskTranscriber; assert VoskTranscriber().model_available(); print('Bundled offline STT model available from clean wheel')")

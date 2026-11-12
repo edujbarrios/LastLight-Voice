@@ -8,6 +8,11 @@ The format is based on Keep a Changelog and the project intends to follow Semant
 
 ### Added
 
+- Offline English microphone transcription using bundled Vosk small 0.15 (Apache-2.0).
+- `lastlight-voice interact` for transcription followed by a spoken acknowledgement.
+- `VoiceInteraction` and injectable `responder` for future LastLight queries.
+- Sounddevice/PortAudio playback to support speech without output WAV files.
+
 - Bundled English Piper Amy low voice (ONNX + configuration + original MODEL_CARD), selected automatically.
 - Required Piper runtime dependency installed by the standard `pip install -e .` command.
 - Declarative Piper voice catalog, offline model discovery and real synthesis smoke tests.
