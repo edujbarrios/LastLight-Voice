@@ -22,6 +22,22 @@ Piper, Vosk and the English voice/STT models are included. After installation,
 speech processing works **offline**. A working microphone and speakers are
 required for interaction; Linux may also require the system `libportaudio2` package.
 
+## Text to audio — basic example
+
+```python
+from lastlight_voice import SpeechEngine
+
+voice = SpeechEngine(language="en")  # Bundled offline Piper Amy
+voice.say("Hello from LastLight!")    # Play through your speakers
+
+audio = voice.synthesize("Hello from LastLight!")  # AudioBuffer (WAV)
+audio.save("hello.wav")               # Optional: save the WAV file
+# audio.data contains the WAV bytes for use in your Python application
+```
+
+Without speakers, generate a WAV directly with `python examples/tts_basic.py`.
+`say()` plays audio and returns `None`; `synthesize()` returns the audio in memory.
+
 ## Talk
 
 ```bash
@@ -33,10 +49,9 @@ without saving audio files. Use `lastlight-voice interact --seconds 15` for a
 longer listening window.
 
 ```python
-from lastlight_voice import VoiceInteraction, SpeechEngine
+from lastlight_voice import VoiceInteraction
 
 VoiceInteraction().interact_once()
-SpeechEngine(language="en").say("LastLight works offline.")
 ```
 
 ## Prepared for LastLight

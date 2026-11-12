@@ -8,6 +8,8 @@ The format is based on Keep a Changelog and the project intends to follow Semant
 
 ### Added
 
+- Minimal text-to-audio Python example with WAV bytes, optional save, and direct speaker playback.
+
 - Optional `make_lastlight_responder` bridge using LastLight's stable public `query`/`QueryResult` API, with safe spoken refusals and no mandatory dependency.
 - Clone-only GitHub installation instructions and public-API compatibility tests.
 

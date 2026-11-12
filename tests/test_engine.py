@@ -76,3 +76,24 @@ def test_auto_english_falls_back_to_espeak_if_piper_missing(monkeypatch) -> None
     monkeypatch.setattr(PiperBackend, "available", lambda self: False)
     monkeypatch.setattr(EspeakBackend, "available", lambda self: True)
     assert SpeechEngine(language="en").backend_name == "espeak-ng"
+
+@pytest.mark.parametrize("language", [None, "", " ", "---", "en$", 23, ["en"]])
+def test_invalid_language_is_rejected_before_backend_resolution(language) -> None:
+    with pytest.raises(ConfigurationError, match="Invalid language tag"):
+        SpeechEngine(language=language)
+
+
+def test_say_plays_without_returning_audio_buffer() -> None:
+    backend = DummyTTSBackend()
+    speech = SpeechEngine(language="en", backend=backend)
+    assert speech.say("Hello!") is None
+    assert backend.spoken == [("Hello!", "en")]
+
+
+def test_synthesize_returns_wav_bytes_without_audio_hardware(tmp_path) -> None:
+    speech = SpeechEngine(language="en", backend="dummy")
+    audio = speech.synthesize("Hello!")
+    assert isinstance(audio.data, bytes)
+    assert audio.data.startswith(b"RIFF")
+    assert audio.duration is not None and audio.duration > 0
+    assert audio.save(tmp_path / "hello.wav").read_bytes() == audio.data

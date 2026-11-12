@@ -19,11 +19,10 @@ _LANGUAGE_TAG = re.compile(r"^[a-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})*$", re.IGNORECA
 
 
 class SpeechEngine:
-    """Low-resource offline text-to-speech engine.
+    """Local text-to-speech engine with English Piper as the default.
 
-    If no backend is supplied, eSpeak NG is selected when locally available.
-    The dummy backend is never chosen silently because doing so would make a
-    failed audio setup look successful.
+    English uses bundled Piper Amy when available, falling back to eSpeak NG.
+    Spanish requires eSpeak NG. The dummy backend is opt-in for testing.
     """
 
     def __init__(
@@ -32,8 +31,11 @@ class SpeechEngine:
         language: str = "en",
         backend: str | TTSBackend | None = None,
     ) -> None:
-        self._backend = _resolve_backend(backend, language=language)
-        self._language = _normalize_language(language, self._backend)
+        # Validate user input before probing backends. Invalid tags should
+        # always raise ConfigurationError, not AttributeError or backend errors.
+        family = _language_family(language)
+        self._backend = _resolve_backend(backend, language=family)
+        self._language = _normalize_language(family, self._backend)
 
     @property
     def language(self) -> str:
@@ -70,11 +72,16 @@ class SpeechEngine:
             raise ConfigurationError("Speech text must be a non-empty string.")
 
 
-def _normalize_language(language: str, backend: TTSBackend) -> str:
-    """Recognize locales via the active backend's installed voices."""
+def _language_family(language: str) -> str:
+    """Validate BCP-47-like language input before selecting a backend."""
     if not isinstance(language, str) or not _LANGUAGE_TAG.fullmatch(language.strip()):
         raise ConfigurationError(f"Invalid language tag: {language!r}")
-    family = language.strip().replace("_", "-").split("-", 1)[0].lower()
+    return language.strip().replace("_", "-").split("-", 1)[0].lower()
+
+
+def _normalize_language(language: str, backend: TTSBackend) -> str:
+    """Check that the selected backend offers the normalized language."""
+    family = _language_family(language)
     supported = {
         voice.language.split("-", 1)[0].split("_", 1)[0].lower()
         for voice in backend.voices(None)
