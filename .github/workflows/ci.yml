@@ -20,6 +20,34 @@ jobs:
         run: python -m pip install -e ".[dev]"
       - name: Test
         run: pytest
+      - name: Test optional upstream LastLight 0.3.1 public API
+        if: matrix.python-version == '3.12'
+        run: |
+          python -m pip install "lastlight==0.3.1"
+          python - <<'PY'
+          from pathlib import Path
+          from urllib.request import urlopen
+          from lastlight import LastLight
+          from lastlight_voice.integrations import make_lastlight_responder
+
+          pack = Path("/tmp/lastlight-example-en.zip")
+          url = "https://raw.githubusercontent.com/edujbarrios/lastlight/main/examplepack/lastlight-example-en.zip"
+          with urlopen(url, timeout=45) as response:
+              pack.write_bytes(response.read())
+          knowledge = LastLight(pack)
+          respond = make_lastlight_responder(knowledge)
+          question = (
+              "The power has been out for several hours. "
+              "How long will food stay safe in my refrigerator if I keep the door closed?"
+          )
+          result = knowledge.query(question)
+          assert result.accepted and result.passage, result
+          assert respond(question) == result.passage.strip()
+          unknown = "How do I repair a diesel engine that will not start?"
+          assert not knowledge.query(unknown).accepted
+          assert "don't have enough reliable local knowledge" in respond(unknown)
+          print("Original LastLight public QueryResult contract OK")
+          PY
       - name: Smoke test CLI
         run: |
           lastlight-voice doctor
