@@ -15,3 +15,8 @@ htmlcov/
 *.onnx
 *.onnx.json
 .piper-model-cache/
+
+# Large Piper ONNX assets are staged only for optional review wheels.
+.piper-model-cache/
+*.onnx
+*.onnx.json
