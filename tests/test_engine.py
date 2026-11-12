@@ -56,3 +56,23 @@ def test_rejects_empty_text() -> None:
     engine = SpeechEngine(backend="dummy")
     with pytest.raises(ConfigurationError):
         engine.say("   ")
+
+
+def test_auto_english_prefers_bundled_piper(monkeypatch) -> None:
+    from lastlight_voice.backends.piper import PiperBackend
+    monkeypatch.setattr(PiperBackend, "available", lambda self: True)
+    assert SpeechEngine(language="en-US").backend_name == "piper"
+
+
+def test_auto_spanish_uses_espeak(monkeypatch) -> None:
+    from lastlight_voice.backends.espeak import EspeakBackend
+    monkeypatch.setattr(EspeakBackend, "available", lambda self: True)
+    assert SpeechEngine(language="es-ES").backend_name == "espeak-ng"
+
+
+def test_auto_english_falls_back_to_espeak_if_piper_missing(monkeypatch) -> None:
+    from lastlight_voice.backends.piper import PiperBackend
+    from lastlight_voice.backends.espeak import EspeakBackend
+    monkeypatch.setattr(PiperBackend, "available", lambda self: False)
+    monkeypatch.setattr(EspeakBackend, "available", lambda self: True)
+    assert SpeechEngine(language="en").backend_name == "espeak-ng"

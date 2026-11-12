@@ -15,15 +15,15 @@ pytest
 
 Contributions should preserve the runtime principles:
 
-- no required network access;
-- no telemetry or automatic downloads;
+- no network access during speech synthesis; dependency installation may fetch packages;
+- no telemetry or downloads at import/runtime; all bundled weights are tracked and verified;
 - prefer small dependencies and standard-library solutions;
 - keep English and Spanish behavior tested;
 - make backend selection deterministic and explainable;
 - provide graceful failure when optional software or hardware is unavailable;
 - add typing and tests for new public behavior.
 
-Large dependencies require a clear justification including RAM, CPU, disk, startup, and energy implications.
+Large models or dependencies require a clear justification including RAM, CPU, disk, startup, licensing, and energy implications. New voice models require a model card, source attribution and documented redistribution rights.
 
 ## Pull requests
 

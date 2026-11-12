@@ -32,7 +32,7 @@ class SpeechEngine:
         language: str = "en",
         backend: str | TTSBackend | None = None,
     ) -> None:
-        self._backend = _resolve_backend(backend)
+        self._backend = _resolve_backend(backend, language=language)
         self._language = _normalize_language(language, self._backend)
 
     @property
@@ -87,14 +87,22 @@ def _normalize_language(language: str, backend: TTSBackend) -> str:
     return family
 
 
-def _resolve_backend(backend: str | TTSBackend | None) -> TTSBackend:
+def _resolve_backend(backend: str | TTSBackend | None, *, language: str = "en") -> TTSBackend:
     if backend is None:
+        # English uses the bundled offline Piper voice by default. Preserve
+        # eSpeak NG as the lightweight alternative and Spanish backend.
+        family = language.strip().replace("_", "-").lower().split("-", 1)[0]
+        if family == "en":
+            from .backends.piper import PiperBackend
+            piper = PiperBackend()
+            if piper.available():
+                return piper
         candidate = EspeakBackend()
         if candidate.available():
             return candidate
         raise BackendUnavailableError(
-            "No real offline TTS backend is available. Install eSpeak NG or explicitly "
-            "use backend='dummy' for tests."
+            "No local real TTS backend is ready. Install Piper for English or "
+            "eSpeak NG for English/Spanish; use backend='dummy' only for tests."
         )
 
     if isinstance(backend, str):

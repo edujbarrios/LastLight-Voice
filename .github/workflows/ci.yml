@@ -27,6 +27,9 @@ jobs:
           lastlight-voice speak --backend dummy "offline smoke test"
           lastlight-voice synthesize --backend dummy "offline smoke test" smoke.wav
           test -s smoke.wav
+          lastlight-voice voices --backend piper --language en
+          lastlight-voice synthesize --language en "LastLight works offline." smoke-piper.wav
+          test -s smoke-piper.wav
 
   build:
     runs-on: ubuntu-latest
@@ -37,3 +40,23 @@ jobs:
           python-version: "3.12"
       - run: python -m pip install build
       - run: python -m build
+      - name: Check wheel contains original Piper voice files
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          wheel = next(Path("dist").glob("lastlight_voice-*.whl"))
+          root = "lastlight_voice/voices/en_US-amy-low/"
+          with ZipFile(wheel) as archive:
+              assert archive.getinfo(root + "en_US-amy-low.onnx").file_size == 63104526
+              assert archive.getinfo(root + "en_US-amy-low.onnx.json").file_size == 4164
+              assert archive.getinfo(root + "en_US-amy-low.MODEL_CARD").file_size == 273
+              assert archive.getinfo("lastlight_voice/voices/THIRD_PARTY_VOICES.md").file_size > 0
+          print("Verified Amy ONNX, JSON, MODEL_CARD and attribution inside wheel")
+          PY
+      - name: Install built wheel in isolated venv and synthesize with Piper
+        run: |
+          python -m venv .wheel-test
+          .wheel-test/bin/python -m pip install dist/lastlight_voice-0.1.0-*.whl
+          (cd /tmp && "$GITHUB_WORKSPACE/.wheel-test/bin/lastlight-voice" synthesize --language en "Bundled voice works offline." "$GITHUB_WORKSPACE/wheel-test.wav")
+          test -s wheel-test.wav

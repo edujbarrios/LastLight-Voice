@@ -8,6 +8,17 @@ The format is based on Keep a Changelog and the project intends to follow Semant
 
 ### Added
 
+- Bundled English Piper Amy low voice (ONNX + configuration + original MODEL_CARD), selected automatically.
+- Required Piper runtime dependency installed by the standard `pip install -e .` command.
+- Declarative Piper voice catalog, offline model discovery and real synthesis smoke tests.
+- Actual wheel and source distribution include the complete model and attribution notice.
+- Third-party attribution and explicit review checklist for the Amy/Ryan training-license chain.
+
+### Removed
+
+- Legacy one-off voice pack preparation script, which is no longer needed for the bundled model.
+
+
 - Initial low-resource offline TTS architecture.
 - `SpeechEngine` public API.
 - Dummy backend for deterministic testing.

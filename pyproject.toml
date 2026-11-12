@@ -13,7 +13,7 @@ authors = [
   { name = "Eduardo J. Barrios" }
 ]
 keywords = ["offline", "speech", "tts", "edge-ai", "low-power", "lastlight"]
-dependencies = []
+dependencies = ["piper-tts>=1.8,<2"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
@@ -26,7 +26,7 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-piper = ["piper-tts>=1.8,<2"]
+# Piper and the English Amy voice are included in the default installation.
 dev = [
   "build>=1.2",
   "pytest>=8",
@@ -44,7 +44,7 @@ where = ["src"]
 include = ["lastlight_voice*"]
 
 [tool.setuptools.package-data]
-lastlight_voice = ["py.typed", "piper_catalog.json"]
+lastlight_voice = ["py.typed", "piper_catalog.json", "voices/*/*.onnx", "voices/*/*.onnx.json", "voices/*/*.MODEL_CARD", "voices/*.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
