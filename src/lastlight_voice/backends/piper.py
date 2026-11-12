@@ -70,7 +70,7 @@ class PiperBackend:
 
     def synthesize(self, text: str, *, language: str) -> AudioBuffer:
         if not self._executable:
-            raise BackendUnavailableError("Piper is not installed: pip install lastlight-voice[piper]")
+            raise BackendUnavailableError("Piper is unavailable in this Python environment.")
         available = [(spec, path) for spec, path in self._local() if spec.language == language]
         if not available:
             raise BackendUnavailableError(f"No local Piper voice installed for {language!r}.")
@@ -96,26 +96,53 @@ class PiperBackend:
                 raise SynthesisError(f"Cannot read Piper output: {exc}") from exc
 
     def speak(self, text: str, *, language: str) -> None:
+        """Speak through local speakers without requiring a user-provided output WAV."""
         audio = self.synthesize(text, language=language)
-        if sys.platform == "win32":
-            import winsound
-            winsound.PlaySound(audio.data, winsound.SND_MEMORY)
+        # Use the same PortAudio stack as microphone capture when possible.
+        # This avoids requiring ffplay/aplay for a normal pip installation.
+        try:
+            import io
+            import wave
+            import sounddevice as sd
+
+            with wave.open(io.BytesIO(audio.data), "rb") as wav:
+                if wav.getsampwidth() != 2 or wav.getcomptype() != "NONE":
+                    raise ValueError("Unsupported Piper WAV sample format")
+                with sd.RawOutputStream(
+                    samplerate=wav.getframerate(),
+                    channels=wav.getnchannels(),
+                    dtype="int16",
+                ) as output:
+                    output.write(wav.readframes(wav.getnframes()))
             return
+        except Exception as audio_error:
+            # PortAudio device failures are implementation-specific exceptions.
+            # Fall back to native local players; never send audio to a service.
+            fallback_error = audio_error
+
+        if sys.platform == "win32":
+            try:
+                import winsound
+                winsound.PlaySound(audio.data, winsound.SND_MEMORY)
+                return
+            except (OSError, RuntimeError) as exc:
+                raise SynthesisError(f"Unable to play speech on Windows: {exc}") from exc
         player = shutil.which("afplay" if sys.platform == "darwin" else "aplay")
         args = [player] if player else None
-        if not args:
+        if args is None:
             ffplay = shutil.which("ffplay")
             if ffplay:
                 args = [ffplay, "-nodisp", "-autoexit", "-loglevel", "error"]
         if args is None:
             raise BackendUnavailableError(
-                "No local audio player found (aplay, afplay or ffplay); WAV synthesis is available."
+                "No usable audio output device or local player found. "
+                f"Sounddevice error: {fallback_error}"
             )
         with tempfile.TemporaryDirectory(prefix="lastlight-player-") as temp:
-            output = Path(temp) / "speech.wav"
-            output.write_bytes(audio.data)
+            wav_path = Path(temp) / "speech.wav"
+            wav_path.write_bytes(audio.data)
             try:
-                subprocess.run([*args, str(output)], check=True, timeout=self._timeout, capture_output=True)
+                subprocess.run([*args, str(wav_path)], check=True, timeout=self._timeout, capture_output=True)
             except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as exc:
                 raise SynthesisError(f"Local audio playback failed: {exc}") from exc
 

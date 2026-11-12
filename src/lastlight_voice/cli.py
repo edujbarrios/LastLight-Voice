@@ -12,6 +12,8 @@ from dataclasses import asdict
 
 from .detection import diagnose
 from .engine import SpeechEngine
+from .interaction import VoiceInteraction
+from .stt import VoskTranscriber
 from .errors import LastLightVoiceError
 
 
@@ -37,6 +39,11 @@ def build_parser() -> argparse.ArgumentParser:
     voices.add_argument("--language", default="en")
     voices.add_argument("--backend", default=None)
 
+    interact = sub.add_parser("interact", help="Listen to the microphone and reply aloud offline.")
+    interact.add_argument("--language", default="en", help="STT language (currently en).")
+    interact.add_argument("--seconds", type=float, default=10.0, help="Maximum recording time.")
+    interact.add_argument("--device", default=None, help="Input microphone device ID or name.")
+
     sub.add_parser("doctor", help="Check whether local offline speech is ready.")
     sub.add_parser("inspect", help="Print local runtime diagnostics as JSON.")
     return parser
@@ -53,6 +60,20 @@ def main(argv: Sequence[str] | None = None) -> int:
             payload = asdict(info)
             payload["offline_ready"] = info.offline_ready
             print(json.dumps(payload, indent=2, sort_keys=True))
+            return 0
+        if args.command == "interact":
+            device = int(args.device) if args.device and args.device.isdecimal() else args.device
+            session = VoiceInteraction(
+                language=args.language,
+                transcriber=VoskTranscriber(language=args.language, device=device),
+            )
+            print("Listening... speak into your microphone.", flush=True)
+            turn = session.interact_once(timeout_seconds=args.seconds)
+            if turn is None:
+                print("No speech recognized.", file=sys.stderr)
+                return 1
+            print(f"Heard: {turn.transcript}")
+            print(f"Replied: {turn.response}")
             return 0
         if args.command == "speak":
             SpeechEngine(language=args.language, backend=args.backend).say(args.text)
@@ -93,6 +114,7 @@ def _print_doctor() -> None:
     print("Piper (Amy low)      " + ("available" if info.piper_available else "not found"))
     if info.piper_voices:
         print("Piper voices         " + ", ".join(info.piper_voices))
+    print("Vosk STT (English)   " + ("available" if info.stt_available else "not found"))
     print("Dummy                available (testing only)")
     print()
     print("Runtime policy")

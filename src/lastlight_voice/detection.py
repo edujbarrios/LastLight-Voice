@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from .backends.dummy import DummyTTSBackend
 from .backends.espeak import EspeakBackend
 from .backends.piper import PiperBackend
+from .stt import VoskTranscriber
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,6 +26,7 @@ class RuntimeDiagnostics:
     automatic_downloads: bool = False
     piper_available: bool = False
     piper_voices: tuple[str, ...] = ()
+    stt_available: bool = False
 
     @property
     def offline_ready(self) -> bool:
@@ -45,4 +47,5 @@ def diagnose() -> RuntimeDiagnostics:
         piper_available=piper.available(),
         piper_voices=tuple(v.id for v in piper.voices()),
         dummy_available=DummyTTSBackend().available(),
+        stt_available=VoskTranscriber().available(),
     )
