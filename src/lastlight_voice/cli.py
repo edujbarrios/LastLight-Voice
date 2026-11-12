@@ -90,6 +90,9 @@ def _print_doctor() -> None:
     print(f"eSpeak NG            {'available' if info.espeak_available else 'not found'}")
     if info.espeak_executable:
         print(f"eSpeak executable    {info.espeak_executable}")
+    print("Piper (Amy low)      " + ("available" if info.piper_available else "not found"))
+    if info.piper_voices:
+        print("Piper voices         " + ", ".join(info.piper_voices))
     print("Dummy                available (testing only)")
     print()
     print("Runtime policy")
