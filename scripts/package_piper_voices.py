@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-"""Explicit build-time Piper voice download and opt-in local wheel preparation.
+"""Explicit, build-time Piper voice pack builder (never runs on pip install)."""
 
-Never runs on pip install or at runtime. Does not publish packages.
-"""
 from __future__ import annotations
 
 import argparse
@@ -21,101 +19,118 @@ from lastlight_voice.piper_voices import load_piper_catalog  # noqa: E402
 SOURCE = "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0"
 
 
-def verify(path: Path, metadata: dict) -> None:
-    if not path.is_file() or path.stat().st_size != metadata["bytes"]:
-        raise ValueError(f"Missing/incorrect voice file: {path}")
-    # MD5 supplied by upstream is for corruption detection, not a secure signature.
-    md5 = hashlib.md5()
+def verify(path: Path, expected: dict) -> None:
+    if not path.is_file() or path.stat().st_size != expected["bytes"]:
+        raise ValueError(f"Wrong size or missing voice asset: {path}")
+    digest = hashlib.md5()  # nosec: upstream checksum for corruption detection, not security
     with path.open("rb") as stream:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            md5.update(chunk)
-    if md5.hexdigest() != metadata["md5"]:
-        raise ValueError(f"Checksum mismatch: {path}")
+            digest.update(chunk)
+    if digest.hexdigest() != expected["md5"]:
+        raise ValueError(f"Upstream checksum mismatch: {path}")
+    if "sha256" in expected:
+        digest256 = hashlib.sha256()
+        with path.open("rb") as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                digest256.update(chunk)
+        if digest256.hexdigest() != expected["sha256"]:
+            raise ValueError(f"Upstream SHA-256 mismatch: {path}")
 
 
-def provision(spec, models_dir: Path, allow_download: bool) -> Path:
-    location = models_dir / spec.id
-    location.mkdir(parents=True, exist_ok=True)
-    for remote_file, meta in spec.files.items():
-        local_name = spec.id + ".MODEL_CARD" if remote_file == "MODEL_CARD" else remote_file
-        local_file = location / local_name
+def prepare(spec, models_dir: Path, download: bool) -> Path:
+    """Copy/verify voice assets; optional explicit upstream fetch, never at runtime."""
+    directory = models_dir / spec.id
+    directory.mkdir(parents=True, exist_ok=True)
+    for filename, expected in spec.files.items():
+        local = directory / (spec.id + ".MODEL_CARD" if filename == "MODEL_CARD" else filename)
         try:
-            verify(local_file, meta)
+            verify(local, expected)
             continue
         except ValueError:
-            if not allow_download:
+            if not download:
                 raise
-        url = SOURCE + "/" + spec.remote_dir + "/" + remote_file
-        with tempfile.NamedTemporaryFile(dir=location, suffix=".part", delete=False) as fp:
-            part = Path(fp.name)
+        url = SOURCE + "/" + spec.remote_dir + "/" + filename
+        print(f"Downloading {url}", flush=True)
+        with tempfile.NamedTemporaryFile(dir=directory, suffix=".part", delete=False) as handle:
+            temp = Path(handle.name)
         try:
-            print("Downloading", url, flush=True)
-            with urllib.request.urlopen(url, timeout=120) as response, part.open("wb") as out:
-                shutil.copyfileobj(response, out)
-            verify(part, meta)
-            part.replace(local_file)
+            with urllib.request.urlopen(url, timeout=120) as response, temp.open("wb") as target:
+                shutil.copyfileobj(response, target, length=1024 * 1024)
+            verify(temp, expected)
+            temp.replace(local)
         finally:
-            part.unlink(missing_ok=True)
-    return location
+            temp.unlink(missing_ok=True)
+    return directory
 
 
-def generate_voice_project(spec, local: Path, out: Path) -> Path:
-    module = "lastlight_voice_models_" + spec.language
-    dist = "lastlight-voice-model-" + spec.language
-    target = out / (dist + "-" + spec.id)
-    if target.exists():
-        raise FileExistsError(f"Already exists: {target}")
-    assets = target / "src" / module / "models"
-    assets.mkdir(parents=True)
-    (assets.parent / "__init__.py").write_text('"""Local Piper voice model files."""\n')
-    for name in (*spec.filenames(), spec.id + ".MODEL_CARD"):
-        shutil.copy2(local / name, assets / name)
-    (target / "pyproject.toml").write_text(
-        '[build-system]\nrequires = ["setuptools>=68", "wheel"]\n'
-        'build-backend = "setuptools.build_meta"\n\n'
+def make_pack(spec, source: Path, target_root: Path) -> Path:
+    """Generate a separate, build-ready Python distribution for one voice."""
+    family = spec.language
+    module = f"lastlight_voice_models_{family}"
+    dist = f"lastlight-voice-model-{family}"
+    out = target_root / (dist + "-" + spec.id)
+    if out.exists():
+        raise FileExistsError(f"Destination already exists: {out}")
+    destination = out / "src" / module / "models"
+    destination.mkdir(parents=True)
+    (destination.parent / "__init__.py").write_text('"""Bundled offline Piper data for LastLight-Voice."""\n', encoding="utf-8")
+    for filename in (*spec.filenames(), spec.id + ".MODEL_CARD"):
+        shutil.copy2(source / filename, destination / filename)
+    (out / "pyproject.toml").write_text(
+        '[build-system]\nrequires = ["setuptools>=68", "wheel"]\nbuild-backend = "setuptools.build_meta"\n\n'
         '[project]\nname = "' + dist + '"\nversion = "0.1.0"\n'
-        'requires-python = ">=3.10"\n'
-        'description = "Offline English Piper model for LastLight-Voice"\n\n'
+        'description = "Offline Piper voice ' + spec.id + ' for LastLight-Voice"\n'
+        'requires-python = ">=3.10"\n\n'
         '[tool.setuptools.packages.find]\nwhere = ["src"]\n\n'
-        '[tool.setuptools.package-data]\n"' + module + '" = ["models/*"]\n'
+        '[tool.setuptools.package-data]\n"' + module + '" = ["models/*"]\n',
+        encoding="utf-8",
     )
-    (target / "README.md").write_text(
-        "# " + dist + "\n\nGenerated locally; not approved for public redistribution. "
-        "Review voice MODEL_CARD, dataset and fine-tuning licenses first.\n"
+    (out / "README.md").write_text(
+        f"# {dist}\n\nContains `{spec.id}` for offline synthesis in LastLight-Voice.\n"
+        "Attribution and a license-risk warning are included in THIRD_PARTY_VOICES.md.\n"
+        "The original upstream MODEL_CARD ships alongside the ONNX weights.\n"
+        "This internal review bundle is NOT approved for public redistribution.\n",
+        encoding="utf-8",
     )
-    return target
+    shutil.copy2(ROOT / "THIRD_PARTY_VOICES.md", out / "THIRD_PARTY_VOICES.md")
+    shutil.copy2(ROOT / "THIRD_PARTY_VOICES.md", destination / "THIRD_PARTY_VOICES.md")
+    return out
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--list", action="store_true")
-    ap.add_argument("--voice", action="append", default=[])
-    ap.add_argument("--download", action="store_true", help="Allow explicit download")
-    ap.add_argument("--models-dir", type=Path, default=Path(".piper-model-cache"))
-    ap.add_argument("--output-dir", type=Path, default=Path("dist/voice-pack-sources"))
-    ap.add_argument("--prepare-packs", action="store_true")
-    ap.add_argument("--acknowledge-licenses", action="store_true")
-    args = ap.parse_args(argv)
-    catalog = {s.id: s for s in load_piper_catalog()}
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--list", action="store_true", help="Show available catalog entries")
+    parser.add_argument("--voice", action="append", default=[], help="Selected voice ID (repeatable)")
+    parser.add_argument("--models-dir", type=Path, default=Path(".piper-model-cache"))
+    parser.add_argument("--output-dir", type=Path, default=Path("dist/voice-pack-sources"))
+    parser.add_argument("--download", action="store_true", help="Explicitly download model assets (requires Internet)")
+    parser.add_argument("--prepare-packs", action="store_true", help="Generate one independent package per selected voice")
+    parser.add_argument("--acknowledge-licenses", action="store_true", help="Explicitly acknowledge unresolved licensing and prepare an internal review package")
+    args = parser.parse_args(argv)
+    catalog = {voice.id: voice for voice in load_piper_catalog()}
     if args.list:
         for voice in catalog.values():
-            print(voice.id, voice.language)
+            print(f"{voice.id}\t{voice.language}\t{sum(v['bytes'] for v in voice.files.values()) / 1_048_576:.2f} MiB")
         return 0
     if not args.voice:
-        ap.error("Specify --voice or --list")
+        parser.error("Select one or more --voice IDs, or use --list")
     if args.prepare_packs and not args.acknowledge_licenses:
-        ap.error("Rights review required: pass --acknowledge-licenses only after confirmation")
-    if len(args.voice) != len(set(args.voice)):
-        ap.error("Duplicate voice")
-    for voice_id in args.voice:
-        if voice_id not in catalog:
-            ap.error(f"Unknown voice: {voice_id}")
-        spec = catalog[voice_id]
-        local = provision(spec, args.models_dir, args.download)
-        print(f"Verified {voice_id} in {local}")
+        parser.error("--prepare-packs requires --acknowledge-licenses (internal review only; NOT a redistribution grant)")
+    chosen = []
+    for name in args.voice:
+        if name not in catalog:
+            parser.error(f"Unknown voice: {name}")
+        if name in (v.id for v in chosen):
+            parser.error(f"Repeated voice: {name}")
+        chosen.append(catalog[name])
+    if args.prepare_packs and len({v.language for v in chosen}) != len(chosen):
+        parser.error("This packaging version supports one voice per language pack")
+    for voice in chosen:
+        directory = prepare(voice, args.models_dir, args.download)
+        print(f"Verified {voice.id}: {directory}")
         if args.prepare_packs:
-            target = generate_voice_project(spec, local, args.output_dir)
-            print(f"Build locally: python -m build --wheel {target}")
+            result = make_pack(voice, directory, args.output_dir)
+            print(f"Ready to build: python -m build --wheel {result}")
     return 0
 
 
