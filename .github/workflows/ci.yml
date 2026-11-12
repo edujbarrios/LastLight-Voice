@@ -58,6 +58,8 @@ jobs:
           lastlight-voice voices --backend piper --language en
           lastlight-voice synthesize --language en "LastLight works offline." smoke-piper.wav
           test -s smoke-piper.wav
+          python examples/tts_basic.py
+          test -s hello.wav
       - name: Check bundled STT model can transcribe local synthetic speech
         run: |
           lastlight-voice synthesize --language en "Hello, I have received your message. Knowledge remains available offline." stt-example.wav

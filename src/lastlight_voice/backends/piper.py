@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MPL-2.0
-"""Opt-in offline Piper CLI backend; never downloads or uses the network."""
+"""Offline Piper CLI backend using bundled local voices; no runtime downloads."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from ..piper_voices import PiperVoiceSpec, find_local_model, load_piper_catalog
 
 
 class PiperBackend:
-    """Neural TTS through locally installed Piper and an independently managed voice pack."""
+    """Neural TTS through the installed Piper CLI and local voice catalog."""
 
     name = "piper"
 
