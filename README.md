@@ -1,60 +1,56 @@
 # LastLight-Voice
 
-**Offline speech for LastLight.** English neural TTS with Piper, Spanish via eSpeak NG, no cloud calls or model downloads at runtime.
+**Offline text-to-speech for [LastLight](https://github.com/edujbarrios/lastlight) and Python applications.** No cloud services or runtime model downloads.
 
 ## Features
 
-- **English:** bundled Piper `en_US-amy-low` (ONNX, 63.1 MB), selected automatically.
-- **Spanish:** eSpeak NG if installed on your system.
-- **Python:** `SpeechEngine.say()`, `synthesize()`, `save()`, `voices()`.
-- **CLI:** `speak`, `synthesize`, `voices`, `doctor`, `inspect`.
-- **Offline:** all neural weights and configuration ship with the library; no network during speech.
-- **Extensible:** language-to-voice mappings are stored in a JSON catalog, not hard-coded in the engine.
+- **English:** Piper TTS with bundled `en_US-amy-low` model (~63 MB), selected automatically.
+- **Spanish:** eSpeak NG (requires the system executable).
+- **API + CLI:** speak, synthesize WAV, list voices, inspect and diagnose.
+- **Extensible:** local voice catalog designed for adding languages; optional LastLight integration.
+- **Offline inference:** model weights and configuration are included in the package.
 
-Speech-to-text and wake-word detection are not yet supported.
+## Install
 
-## Installation
-
-LastLight-Voice is **not yet published on PyPI**. From this review branch:
+Not yet on PyPI. Install the current **`main` branch** directly:
 
 ```bash
-git clone --branch feat/piper-amy-pypi-review https://github.com/edujbarrios/LastLight-Voice.git
+python -m pip install "git+https://github.com/edujbarrios/LastLight-Voice.git"
+```
+
+For development (editable install):
+
+```bash
+git clone https://github.com/edujbarrios/LastLight-Voice.git
 cd LastLight-Voice
 python -m pip install -e .
 ```
 
-That's it for English: **`pip install -e .` installs Piper and includes the Amy voice**, with no extras, separate voice package, environment variables or post-install downloads. Building a standard wheel with `python -m build` also includes the model.
-
-The Git clone transfers the model with the source files. Pip downloads ordinary Python dependencies at install time; **speech synthesis itself needs no Internet**. For Spanish, install `espeak-ng` separately using your OS package manager.
+**Both commands install Piper and the English Amy voice automatically.** No `[piper]` extra, model download, or environment variables are needed. Installation may use the Internet for GitHub and Python dependencies; **synthesis works offline** afterward. For Spanish, install `espeak-ng` separately with your system package manager.
 
 ## Usage
 
 ```python
 from lastlight_voice import SpeechEngine
 
-speech = SpeechEngine(language="en")  # Piper Amy automatically
-speech.say("LastLight works offline.")
-speech.save("Emergency information is available.", "message.wav")
+speech = SpeechEngine(language="en")  # Piper Amy
+speech.save("Emergency information is available offline.", "message.wav")
+speech.say("Stay safe.")  # Requires a local audio player
 
-spanish = SpeechEngine(language="es")  # eSpeak NG if installed
-spanish.say("La información está disponible sin conexión.")
+# If eSpeak NG is installed:
+SpeechEngine(language="es").save("Información disponible sin conexión.", "es.wav")
 ```
 
 ```bash
-lastlight-voice synthesize --language en "Stay safe." output.wav
-lastlight-voice speak --language en "Knowledge remains available."
+lastlight-voice synthesize --language en "LastLight works offline." voice.wav
 lastlight-voice voices --backend piper --language en
 lastlight-voice doctor
-lastlight-voice inspect
 ```
 
-Use `backend="espeak"` or `backend="dummy"` explicitly to select other engines. If Piper is unavailable for English, eSpeak NG is the local fallback; the library does not download a replacement model.
+## Licenses and attribution
 
-## Packaging and license
+LastLight-Voice code: **MPL-2.0**. Piper runtime: **GPL-3.0-or-later**. English voice: **Piper/Rhasspy Amy low**, credited to Michael Hansen, Piper contributors and upstream providers. The model and original `MODEL_CARD` ship with the package.
 
-- **Python package:** MPL-2.0 source code; required `piper-tts` dependency is GPL-3.0-or-later.
-- **Voice:** Piper/Rhasspy `en_US-amy-low`. Credits to Michael Hansen, Rhasspy/Piper contributors and the original model/data providers. The original `MODEL_CARD` and attribution notice ship inside the installed package.
-- **Review required:** the Piper collection is labeled MIT, but Amy's own model card refers to a Mimic 3 dataset and Ryan fine-tuning lineage. Permission to redistribute Amy weights under that label is not established by the card alone.
-- **Release status:** code and model are on the GitHub review branch; **nothing has been uploaded to PyPI**.
+The Piper voice repository is tagged MIT, but **Amy's individual model card does not independently establish redistribution rights for its weights or Ryan-derived training lineage**. Review this before PyPI publication.
 
-[Voice attribution and license review](THIRD_PARTY_VOICES.md) · [PyPI checklist](docs/PIPER_RELEASE_REVIEW.md) · [Contributing](CONTRIBUTING.md) · [License](LICENSE)
+[Third-party voice notices](THIRD_PARTY_VOICES.md) · [PyPI release checklist](docs/PIPER_RELEASE_REVIEW.md) · [Architecture](docs/architecture.md) · [License](LICENSE)
