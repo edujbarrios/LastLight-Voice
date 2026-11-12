@@ -13,19 +13,20 @@ Its purpose is to keep local knowledge accessible when a keyboard, screen, netwo
 - a typed `SpeechEngine` API;
 - a deterministic `DummyTTSBackend` for tests and integrations;
 - low-resource eSpeak NG support on systems where `espeak-ng` is installed;
-- English and Spanish language selection;
+- English and Spanish language selection for eSpeak NG;
+- optional Piper English voice registration (Amy low), without bundled weights or runtime downloads;
 - direct speech and WAV synthesis;
 - local-only `doctor` and `inspect` diagnostics;
 - an optional LastLight query-result adapter;
 - tests and CI on Python 3.10, 3.11, and 3.12.
 
-Speech-to-text, wake words, VAD, Piper and neural voice models are roadmap work and are **not** part of the current release.
+Speech-to-text, wake words and VAD remain roadmap work. The Piper backend is experimental and opt-in; no voice weights are bundled.
 
 ## Design principles
 
 - **Offline-first runtime.** No cloud APIs, telemetry, update checks, or automatic downloads.
 - **Low-resource by default.** Prefer the smallest viable speech backend over higher-quality but more expensive alternatives.
-- **English and Spanish first.** Keep model and testing scope deliberately small.
+- **English neural voice first.** Piper currently registers Amy low; eSpeak keeps English and Spanish support.
 - **Auditable behavior.** Backend selection and failures should remain explicit.
 - **Independent runtime.** LastLight integration is optional; `lastlight_voice` works standalone.
 - **Open source.** Source code is licensed under MPL-2.0.
@@ -124,6 +125,62 @@ List voices exposed by the selected backend:
 ```bash
 lastlight-voice voices --language en
 ```
+
+## Optional Piper voice: English only
+
+The experimental Piper backend registers only `en_US-amy-low` (English, US). It
+uses a data-driven JSON catalog (`src/lastlight_voice/piper_catalog.json`), so
+future languages and voices need no speech-engine rewrite. The existing
+English/Spanish eSpeak NG backend remains the default.
+
+**Licensing gate:** Amy low's upstream MODEL_CARD says its dataset license is
+`See URL` and that it was fine-tuned from the Ryan low model. Rights to
+redistribute the resulting weights have not been established here. Do **not**
+publish an Amy model wheel on PyPI until you have independently confirmed
+the voice and training-lineage rights. No model weights are in this repository.
+
+Install Piper as an opt-in dependency (current `piper-tts` is GPL-3.0-or-later,
+which may affect how you distribute integrations), then explicitly prepare
+the voice once while online:
+
+```sh
+python -m pip install -e ".[piper]"
+python scripts/package_piper_voices.py --list
+python scripts/package_piper_voices.py --voice en_US-amy-low --download
+export LASTLIGHT_VOICE_MODELS_DIR=.piper-model-cache
+lastlight-voice synthesize --backend piper --language en "Stay safe." speech.wav
+```
+
+On Windows PowerShell, use
+`$env:LASTLIGHT_VOICE_MODELS_DIR='.piper-model-cache'` instead of `export`.
+After provisioning, inference works without network access. No downloads
+occur at import, installation or synthesis time.
+
+Python API:
+
+```python
+from lastlight_voice import SpeechEngine
+from lastlight_voice.backends.piper import PiperBackend
+
+engine = SpeechEngine(
+    language="en",
+    backend=PiperBackend(models_dir=".piper-model-cache"),
+)
+engine.save("Knowledge remains available offline.", "speech.wav")
+```
+
+**Future PyPI voice packs:** after confirming redistribution rights, run the
+separate explicit `--prepare-packs --acknowledge-licenses` option to generate
+the source for a local English voice wheel containing ONNX, JSON and MODEL_CARD.
+Use `python -m build --wheel <generated-directory>` to build that wheel.
+The wheel name is `lastlight-voice-model-en` and is discovered automatically
+when installed alongside the main package. It is not currently published.
+The English model is around 63.1 MB before wheel compression and dependencies.
+Separate voice wheels let the core package stay small as new languages arrive.
+
+Custom local model directories may contain the two voice files either
+directly or inside a directory named `en_US-amy-low`. The engine never
+silently falls back to another voice if an expected Piper model is missing.
 
 ## Offline contract
 
