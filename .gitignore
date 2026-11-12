@@ -10,3 +10,8 @@ build/
 htmlcov/
 .DS_Store
 *.wav
+
+# Never commit Piper voice weights or local model cache
+*.onnx
+*.onnx.json
+.piper-model-cache/

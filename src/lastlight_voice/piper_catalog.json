@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "source": "https://huggingface.co/rhasspy/piper-voices/tree/v1.0.0",
+  "voices": [
+    {
+      "id": "en_US-amy-low",
+      "language": "en_US",
+      "quality": "low",
+      "remote_dir": "en/en_US/amy/low",
+      "files": {
+        "en_US-amy-low.onnx": {"bytes": 63104526, "md5": "3c3f6a6ec605f3a59763256d3b2db012"},
+        "en_US-amy-low.onnx.json": {"bytes": 4164, "md5": "85a339b51379b13bbbb0784382ca75bc"},
+        "MODEL_CARD": {"bytes": 273, "md5": "e1cdd84aa7493b8fbe1e6471f6f93cea"}
+      }
+    }
+  ]
+}
