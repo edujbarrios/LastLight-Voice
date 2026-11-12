@@ -182,6 +182,30 @@ Custom local model directories may contain the two voice files either
 directly or inside a directory named `en_US-amy-low`. The engine never
 silently falls back to another voice if an expected Piper model is missing.
 
+### Amy packaging and licensing review
+
+The [Piper voice collection](https://huggingface.co/rhasspy/piper-voices) is
+marked **MIT** at repository level. This is the public metadata on which
+the project bases its packaging review. However, Amy's individual MODEL_CARD
+does **not** grant MIT rights over the weights: it identifies MycroftAI Mimic 3
+and a Ryan fine-tuning base. Piper's maintainers caution that the repository
+label does not resolve individual voice rights.
+
+LastLight-Voice did not collect or train the source recordings and does not
+claim ownership of them. This fact does not waive redistribution obligations.
+Credits are preserved for Michael Hansen, Rhasspy/Piper contributors, MycroftAI
+and original voice/dataset providers.
+
+Read [third-party attribution and risks](THIRD_PARTY_VOICES.md) and the
+[PyPI release checklist](docs/PIPER_RELEASE_REVIEW.md) before distributing.
+The build tool produces a **review-only** optional voice wheel when explicitly
+requested; it never uploads it. Source releases keep large weights out of Git.
+
+After both distributions are reviewed and published, the future optional
+`lastlight-voice[amy]` extra can install Piper and the separate
+`lastlight-voice-model-en` wheel. It cannot resolve before that model wheel
+exists on the package index. No runtime code downloads model files.
+
 ## Offline contract
 
 Normal runtime behavior must not require a network connection. The core intentionally performs no:
