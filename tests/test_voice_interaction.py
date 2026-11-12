@@ -140,7 +140,11 @@ def test_streaming_recognition_uses_pcm16_and_returns_text(monkeypatch, tmp_path
         def Result(self) -> str:
             return json.dumps({"text": "recognized microphone phrase"})
 
-    fake_sd = types.SimpleNamespace(RawInputStream=FakeStream, PortAudioError=type("PortAudioError", (Exception,), {}))
+    fake_sd = types.SimpleNamespace(
+        RawInputStream=FakeStream,
+        PortAudioError=type("PortAudioError", (Exception,), {}),
+        query_devices=lambda device, kind: {"default_samplerate": 16000},
+    )
     fake_vosk = types.SimpleNamespace(Model=lambda path: path, KaldiRecognizer=FakeKaldi)
     monkeypatch.setitem(sys.modules, "sounddevice", fake_sd)
     monkeypatch.setitem(sys.modules, "vosk", fake_vosk)

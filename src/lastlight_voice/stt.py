@@ -117,9 +117,18 @@ class VoskTranscriber:
             raise BackendUnavailableError(
                 "Microphone transcription requires the installed vosk and sounddevice packages."
             ) from exc
+        # Match the recording device's native rate; Vosk can resample internally.
+        # Many microphones do not accept a forced 16 kHz input stream.
+        try:
+            sample_rate = int(sd.query_devices(self.device, "input")["default_samplerate"])
+            if sample_rate <= 0:
+                raise ValueError("Invalid microphone sample rate")
+        except (sd.PortAudioError, KeyError, TypeError, ValueError, OSError):
+            sample_rate = self.sample_rate
+
         try:
             model = Model(str(self.model_dir))
-            recognizer = KaldiRecognizer(model, self.sample_rate)
+            recognizer = KaldiRecognizer(model, sample_rate)
         except (OSError, RuntimeError, ValueError) as exc:
             raise SpeechRecognitionError(f"Cannot initialize offline recognizer: {exc}") from exc
 
@@ -133,10 +142,10 @@ class VoskTranscriber:
                 pass
             raise SpeechRecognitionError("Vosk returned malformed transcription data.")
 
-        frames_per_block = max(1, self.sample_rate // 4)
+        frames_per_block = max(1, sample_rate // 4)
         try:
             with sd.RawInputStream(
-                samplerate=self.sample_rate,
+                samplerate=sample_rate,
                 blocksize=frames_per_block,
                 device=self.device,
                 channels=1,
