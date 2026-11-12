@@ -27,6 +27,8 @@ classifiers = [
 
 [project.optional-dependencies]
 piper = ["piper-tts>=1.8,<2"]
+# Installable after the separately reviewed voice wheel is published.
+amy = ["piper-tts>=1.8,<2", "lastlight-voice-model-en==0.1.0"]
 dev = [
   "build>=1.2",
   "pytest>=8",
