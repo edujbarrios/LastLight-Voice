@@ -31,7 +31,17 @@ class PiperBackend:
     ) -> None:
         if timeout <= 0:
             raise ConfigurationError("Piper timeout must be greater than zero.")
-        self._executable = shutil.which(executable) if executable else shutil.which("piper")
+        if executable:
+            self._executable = shutil.which(executable)
+        else:
+            # The pip console script belongs to the *same* Python environment,
+            # even when the environment's bin/ directory is absent from PATH.
+            local_piper = Path(sys.executable).parent / (
+                "piper.exe" if sys.platform == "win32" else "piper"
+            )
+            self._executable = (
+                str(local_piper) if local_piper.is_file() else shutil.which("piper")
+            )
         self._models_dir = models_dir
         self._specs: tuple[PiperVoiceSpec, ...] = load_piper_catalog(catalog_path)
         self._timeout = timeout
