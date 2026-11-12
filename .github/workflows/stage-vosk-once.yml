@@ -49,7 +49,7 @@ jobs:
               destination = Path('src/lastlight_voice/stt_models')
               archive.extractall(destination)
           model = Path('src/lastlight_voice/stt_models/vosk-model-small-en-us-0.15')
-          for required in ['am/final.mdl', 'conf/model.conf', 'graph/HCLG.fst']:
+          for required in ['am/final.mdl', 'conf/model.conf', 'graph/HCLr.fst', 'graph/Gr.fst']:
               assert (model / required).is_file(), f'Missing Vosk model component {required}'
           print('STAGED verified Vosk model:', len(members), 'files;', total, 'bytes uncompressed')
           PY
