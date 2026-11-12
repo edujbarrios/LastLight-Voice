@@ -25,3 +25,7 @@ class SynthesisError(BackendError):
 
 class AudioError(LastLightVoiceError):
     """Raised when audio data cannot be written or handled."""
+
+
+class SpeechRecognitionError(LastLightVoiceError):
+    """Raised when offline transcription fails."""
