@@ -8,6 +8,9 @@ The format is based on Keep a Changelog and the project intends to follow Semant
 
 ### Added
 
+- Optional `make_lastlight_responder` bridge using LastLight's stable public `query`/`QueryResult` API, with safe spoken refusals and no mandatory dependency.
+- Clone-only GitHub installation instructions and public-API compatibility tests.
+
 - Offline English microphone transcription using bundled Vosk small 0.15 (Apache-2.0).
 - `lastlight-voice interact` for transcription followed by a spoken acknowledgement.
 - `VoiceInteraction` and injectable `responder` for future LastLight queries.

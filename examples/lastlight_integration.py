@@ -1,11 +1,29 @@
-from lastlight import LastLight
-from lastlight_voice import SpeechEngine
-from lastlight_voice.integrations import speak_query_result
+"""Optional microphone -> LastLight query -> Piper voice example.
 
-knowledge = LastLight("lastlight-example-en.zip")
-speech = SpeechEngine(language="en")
+Requires a separate LastLight installation and a local knowledge pack.
+No dependency on LastLight is added to LastLight-Voice.
+"""
 
-result = knowledge.query(
-    "How long will food stay safe in my refrigerator if I keep the door closed?"
-)
-speak_query_result(result, speech)
+from __future__ import annotations
+
+import argparse
+
+from lastlight_voice import VoiceInteraction
+from lastlight_voice.integrations import make_lastlight_responder
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Speak to a local LastLight knowledge pack.")
+    parser.add_argument("knowledge", help="Local LastLight knowledge directory or ZIP")
+    args = parser.parse_args()
+
+    # Import only in this opt-in example, not in the LastLight-Voice package.
+    from lastlight import LastLight
+
+    knowledge = LastLight(args.knowledge)
+    voice = VoiceInteraction(responder=make_lastlight_responder(knowledge))
+    voice.interact_once()
+
+
+if __name__ == "__main__":
+    main()
