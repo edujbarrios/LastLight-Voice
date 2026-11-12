@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Sequence
 
@@ -14,14 +15,7 @@ from .backends.espeak import EspeakBackend
 from .errors import BackendUnavailableError, ConfigurationError
 from .models import BackendCapabilities, Voice
 
-_SUPPORTED_LANGUAGES = {
-    "en": "en",
-    "en-us": "en",
-    "en-gb": "en",
-    "es": "es",
-    "es-es": "es",
-    "es-mx": "es",
-}
+_LANGUAGE_TAG = re.compile(r"^[a-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})*$", re.IGNORECASE)
 
 
 class SpeechEngine:
@@ -38,8 +32,8 @@ class SpeechEngine:
         language: str = "en",
         backend: str | TTSBackend | None = None,
     ) -> None:
-        self._language = _normalize_language(language)
         self._backend = _resolve_backend(backend)
+        self._language = _normalize_language(language, self._backend)
 
     @property
     def language(self) -> str:
@@ -76,15 +70,21 @@ class SpeechEngine:
             raise ConfigurationError("Speech text must be a non-empty string.")
 
 
-def _normalize_language(language: str) -> str:
-    normalized = language.strip().replace("_", "-").lower()
-    try:
-        return _SUPPORTED_LANGUAGES[normalized]
-    except KeyError as exc:
+def _normalize_language(language: str, backend: TTSBackend) -> str:
+    """Recognize locales via the active backend's installed voices."""
+    if not isinstance(language, str) or not _LANGUAGE_TAG.fullmatch(language.strip()):
+        raise ConfigurationError(f"Invalid language tag: {language!r}")
+    family = language.strip().replace("_", "-").split("-", 1)[0].lower()
+    supported = {
+        voice.language.split("-", 1)[0].split("_", 1)[0].lower()
+        for voice in backend.voices(None)
+    }
+    if family not in supported:
         raise ConfigurationError(
-            "Unsupported language. LastLight-Voice v0.1 supports English and Spanish "
-            "(en, en-US, en-GB, es, es-ES, es-MX)."
-        ) from exc
+            f"Unsupported language {language!r} for backend {backend.name!r}. "
+            f"Locally available languages: {', '.join(sorted(supported)) or 'none'}."
+        )
+    return family
 
 
 def _resolve_backend(backend: str | TTSBackend | None) -> TTSBackend:
@@ -103,6 +103,9 @@ def _resolve_backend(backend: str | TTSBackend | None) -> TTSBackend:
             candidate = EspeakBackend()
         elif normalized == "dummy":
             candidate = DummyTTSBackend()
+        elif normalized == "piper":
+            from .backends.piper import PiperBackend
+            candidate = PiperBackend()
         else:
             raise ConfigurationError(f"Unknown TTS backend: {backend!r}")
         if not candidate.available():
